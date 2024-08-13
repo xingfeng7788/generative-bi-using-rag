@@ -125,10 +125,10 @@ def get_history_by_session(history_request: HistorySessionRequest):
 
 @router.post("/delete_history_by_session")
 def delete_history_by_session(history_request: HistorySessionRequest):
-    user_id = history_request.user_id
+    user_id = base64.b64decode(history_request.user_id).decode('utf-8')
     profile_name = history_request.profile_name
     session_id = history_request.session_id
-    return LogManagement.delete_history_by_session(user_id, profile_name, session_id)
+    return LogManagement.delete_history_by_session(user_id, profile_name, session_id, log_type=history_request.log_type)
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str] = Cookie(None)):

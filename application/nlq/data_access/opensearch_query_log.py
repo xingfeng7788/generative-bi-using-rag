@@ -201,7 +201,7 @@ class OpenSearchQueryLogDao:
             )
         return history_list
 
-    def delete_history_by_session(self, user_id, profile_name, session_id):
+    def delete_history_by_session(self, user_id, profile_name, session_id, log_type="chat_history"):
         try:
             query = {
                 "query": {
@@ -209,7 +209,8 @@ class OpenSearchQueryLogDao:
                         "must": [
                             {"term": {"session_id": session_id}},
                             {"term": {"user_id": user_id}},
-                            {"term": {"profile_name": profile_name}}
+                            {"term": {"profile_name": profile_name}},
+                            {"term": {"log_type": log_type}},
                         ]
                     }
                 }
