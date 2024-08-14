@@ -42,7 +42,7 @@ class DlsetQuestion(BaseModel):
     query: str
     user_id: str = "admin"
     session_id: str = "-1"
-    token: str
+    token: str = "default_token"
     with_history: bool = False
     bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20240620-v1:0"
     use_rag_flag: bool = True

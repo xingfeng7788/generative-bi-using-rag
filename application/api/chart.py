@@ -7,11 +7,10 @@ import json
 import logging
 import traceback
 from typing import Optional
-
 from dotenv import load_dotenv
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status, Depends, Cookie, HTTPException
-
-from api.dlset_service import dlset_ask_websocket
+from fastapi.responses import StreamingResponse
+from api.dlset_service import dlset_ask_websocket, dlset_ask_stream
 from api.enum import ContentEnum
 from api.schemas import DlsetQuestion
 from utils.validate import validate_token, get_current_user
@@ -85,3 +84,8 @@ async def response_websocket(websocket: WebSocket, session_id: str, content,
     logger.info(content_obj)
     final_content = json.dumps(content_obj)
     await websocket.send_text(final_content)
+
+
+@router.post("/stream")
+async def superset_stream(question: DlsetQuestion):
+    return StreamingResponse(dlset_ask_stream(question), media_type="text/event-stream")

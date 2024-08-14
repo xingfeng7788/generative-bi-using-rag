@@ -1,5 +1,7 @@
+import json
 import os
 
+from utils.knowledege_utils import get_knowledege_context
 from utils.prompt import POSTGRES_DIALECT_PROMPT_CLAUDE3, MYSQL_DIALECT_PROMPT_CLAUDE3, \
     DEFAULT_DIALECT_PROMPT, AGENT_COT_EXAMPLE, AWS_REDSHIFT_DIALECT_PROMPT_CLAUDE3, STARROCKS_DIALECT_PROMPT_CLAUDE3, CLICKHOUSE_DIALECT_PROMPT_CLAUDE3
 from utils.prompts import guidance_prompt
@@ -792,417 +794,109 @@ The question is : {question}
 
 # 知识库检索意图
 knowledge_system_prompt_dict['mixtral-8x7b-instruct-0'] = """
-You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
-<rules>
-1. answer should as concise as possible
-2. if you don't know the answer to the question, just answer you don't know.
-</rules>
-
-<context>
-Here is a list of acronyms and their full names plus some comments, which may help you understand the context of the question.
-[{'Acronym': 'NDDC', 'Full name': 'Nike Direct Digital Commerce'},
- {'Acronym': 'D2N', 'Full name': 'Demand to Net Revenue'},
- {'Acronym': 'SKU',
-  'Full name': 'Stock Keeping Unit',
-  'Comment': 'Product code; Material number; Style color'},
- {'Acronym': 'order_dt', 'Full name': 'order_date'},
- {'Acronym': 'Owned Eco', 'Full name': 'Owned E-commerce'},
- {'Acronym': 'desc', 'Full name': 'description'},
- {'Acronym': 'etc', 'Full name': 'et cetera', 'Comment': '意为“等等”'},
- {'Acronym': 'amt', 'Full name': 'amount'},
- {'Acronym': 'qty', 'Full name': 'quantity'},
- {'Acronym': 'PE', 'Full name': 'product engine'},
- {'Acronym': 'YA', 'Full name': 'YOUNG ATHLETES'},
- {'Acronym': 'FTW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'FW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'APP', 'Full name': 'APPAREL'},
- {'Acronym': 'AP', 'Full name': 'APPAREL'},
- {'Acronym': 'EQP', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'EQ', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'NSW', 'Full name': 'NIKE SPORTSWEAR'},
- {'Acronym': 'MTD',
-  'Full name': 'Month to Date',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'WTD',
-  'Full name': 'Week to Date',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Acronym': 'YTD',
-  'Full name': 'Year to Date',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'YOY',
-  'Full name': 'Year-Over-Year',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Acronym': 'cxl', 'Full name': 'Cancel'},
- {'Acronym': 'rtn', 'Full name': 'Return'},
- {'Acronym': 'cxl%', 'Full name': 'Cancel Rate'},
- {'Acronym': 'rtn%', 'Full name': 'Return Rate'},
- {'Acronym': 'LY', 'Full name': 'Last year'},
- {'Acronym': 'CY', 'Full name': 'Current year'},
- {'Acronym': 'TY', 'Full name': 'This year'},
- {'Acronym': 'MKD', 'Full name': 'Markdown'},
- {'Acronym': 'MD', 'Full name': 'Markdown'},
- {'Acronym': 'AUR', 'Full name': 'Average unit retail'},
- {'Acronym': 'diff', 'Full name': 'different'},
- {'Acronym': 'FY', 'Full name': 'fiscal year'}]
- Here's a list of formulas that may help you answer the question.
- [{'Formula': 'Net Demand = Demand - Cancel'},
- {'Formula': 'Net Revenue = Demand - Cancel - Return'},
- {'Formula': 'Return Rate = Return/Demand'},
- {'Formula': 'Cancel Rate = Cancel/Demand'},
- {'Formula': 'rtn% = Return/Demand'},
- {'Formula': 'cxl% = Cancel/Demand'},
- {'Formula': 'Total Rate = Return Rate + Cancel Rate'},
- {'Formula': 'D2N Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Cancel/Return Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Demand Share =Demand for this product/Total Demand'},
- {'Formula': 'MTD = 2023/12/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'WTD = 2023/12/4~202312/7',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Formula': 'YTD = 2023/1/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'YOY = This year period / Last year period',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Formula': 'AUR = Net Revenue/Net Quantity',
-  'Comment': 'Net Revenue  = Demand amt - Cancel amt – Return amt Net quantity = Demand qty - Cancel qty – Return qty '}]
- </context>
+    You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
+    <rules>
+    1. answer should as concise as possible
+    2. if you don't know the answer to the question, just answer you don't know.
+    </rules>
 
 """
 
 knowledge_system_prompt_dict['llama3-70b-instruct-0'] = """
-You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
-<rules>
-1. answer should as concise as possible
-2. if you don't know the answer to the question, just answer you don't know.
-</rules>
-
-<context>
-Here is a list of acronyms and their full names plus some comments, which may help you understand the context of the question.
-[{'Acronym': 'NDDC', 'Full name': 'Nike Direct Digital Commerce'},
- {'Acronym': 'D2N', 'Full name': 'Demand to Net Revenue'},
- {'Acronym': 'SKU',
-  'Full name': 'Stock Keeping Unit',
-  'Comment': 'Product code; Material number; Style color'},
- {'Acronym': 'order_dt', 'Full name': 'order_date'},
- {'Acronym': 'Owned Eco', 'Full name': 'Owned E-commerce'},
- {'Acronym': 'desc', 'Full name': 'description'},
- {'Acronym': 'etc', 'Full name': 'et cetera', 'Comment': '意为“等等”'},
- {'Acronym': 'amt', 'Full name': 'amount'},
- {'Acronym': 'qty', 'Full name': 'quantity'},
- {'Acronym': 'PE', 'Full name': 'product engine'},
- {'Acronym': 'YA', 'Full name': 'YOUNG ATHLETES'},
- {'Acronym': 'FTW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'FW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'APP', 'Full name': 'APPAREL'},
- {'Acronym': 'AP', 'Full name': 'APPAREL'},
- {'Acronym': 'EQP', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'EQ', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'NSW', 'Full name': 'NIKE SPORTSWEAR'},
- {'Acronym': 'MTD',
-  'Full name': 'Month to Date',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'WTD',
-  'Full name': 'Week to Date',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Acronym': 'YTD',
-  'Full name': 'Year to Date',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'YOY',
-  'Full name': 'Year-Over-Year',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Acronym': 'cxl', 'Full name': 'Cancel'},
- {'Acronym': 'rtn', 'Full name': 'Return'},
- {'Acronym': 'cxl%', 'Full name': 'Cancel Rate'},
- {'Acronym': 'rtn%', 'Full name': 'Return Rate'},
- {'Acronym': 'LY', 'Full name': 'Last year'},
- {'Acronym': 'CY', 'Full name': 'Current year'},
- {'Acronym': 'TY', 'Full name': 'This year'},
- {'Acronym': 'MKD', 'Full name': 'Markdown'},
- {'Acronym': 'MD', 'Full name': 'Markdown'},
- {'Acronym': 'AUR', 'Full name': 'Average unit retail'},
- {'Acronym': 'diff', 'Full name': 'different'},
- {'Acronym': 'FY', 'Full name': 'fiscal year'}]
- Here's a list of formulas that may help you answer the question.
- [{'Formula': 'Net Demand = Demand - Cancel'},
- {'Formula': 'Net Revenue = Demand - Cancel - Return'},
- {'Formula': 'Return Rate = Return/Demand'},
- {'Formula': 'Cancel Rate = Cancel/Demand'},
- {'Formula': 'rtn% = Return/Demand'},
- {'Formula': 'cxl% = Cancel/Demand'},
- {'Formula': 'Total Rate = Return Rate + Cancel Rate'},
- {'Formula': 'D2N Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Cancel/Return Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Demand Share =Demand for this product/Total Demand'},
- {'Formula': 'MTD = 2023/12/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'WTD = 2023/12/4~202312/7',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Formula': 'YTD = 2023/1/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'YOY = This year period / Last year period',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Formula': 'AUR = Net Revenue/Net Quantity',
-  'Comment': 'Net Revenue  = Demand amt - Cancel amt – Return amt Net quantity = Demand qty - Cancel qty – Return qty '}]
- </context>
+    You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
+    <rules>
+    1. answer should as concise as possible
+    2. if you don't know the answer to the question, just answer you don't know.
+    </rules>
 
 """
 
 knowledge_system_prompt_dict['haiku-20240307v1-0'] = """
-You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
-<rules>
-1. answer should as concise as possible
-2. if you don't know the answer to the question, just answer you don't know.
-</rules>
-
-<context>
-Here is a list of acronyms and their full names plus some comments, which may help you understand the context of the question.
-[{'Acronym': 'NDDC', 'Full name': 'Nike Direct Digital Commerce'},
- {'Acronym': 'D2N', 'Full name': 'Demand to Net Revenue'},
- {'Acronym': 'SKU',
-  'Full name': 'Stock Keeping Unit',
-  'Comment': 'Product code; Material number; Style color'},
- {'Acronym': 'order_dt', 'Full name': 'order_date'},
- {'Acronym': 'Owned Eco', 'Full name': 'Owned E-commerce'},
- {'Acronym': 'desc', 'Full name': 'description'},
- {'Acronym': 'etc', 'Full name': 'et cetera', 'Comment': '意为“等等”'},
- {'Acronym': 'amt', 'Full name': 'amount'},
- {'Acronym': 'qty', 'Full name': 'quantity'},
- {'Acronym': 'PE', 'Full name': 'product engine'},
- {'Acronym': 'YA', 'Full name': 'YOUNG ATHLETES'},
- {'Acronym': 'FTW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'FW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'APP', 'Full name': 'APPAREL'},
- {'Acronym': 'AP', 'Full name': 'APPAREL'},
- {'Acronym': 'EQP', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'EQ', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'NSW', 'Full name': 'NIKE SPORTSWEAR'},
- {'Acronym': 'MTD',
-  'Full name': 'Month to Date',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'WTD',
-  'Full name': 'Week to Date',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Acronym': 'YTD',
-  'Full name': 'Year to Date',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'YOY',
-  'Full name': 'Year-Over-Year',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Acronym': 'cxl', 'Full name': 'Cancel'},
- {'Acronym': 'rtn', 'Full name': 'Return'},
- {'Acronym': 'cxl%', 'Full name': 'Cancel Rate'},
- {'Acronym': 'rtn%', 'Full name': 'Return Rate'},
- {'Acronym': 'LY', 'Full name': 'Last year'},
- {'Acronym': 'CY', 'Full name': 'Current year'},
- {'Acronym': 'TY', 'Full name': 'This year'},
- {'Acronym': 'MKD', 'Full name': 'Markdown'},
- {'Acronym': 'MD', 'Full name': 'Markdown'},
- {'Acronym': 'AUR', 'Full name': 'Average unit retail'},
- {'Acronym': 'diff', 'Full name': 'different'},
- {'Acronym': 'FY', 'Full name': 'fiscal year'}]
- Here's a list of formulas that may help you answer the question.
- [{'Formula': 'Net Demand = Demand - Cancel'},
- {'Formula': 'Net Revenue = Demand - Cancel - Return'},
- {'Formula': 'Return Rate = Return/Demand'},
- {'Formula': 'Cancel Rate = Cancel/Demand'},
- {'Formula': 'rtn% = Return/Demand'},
- {'Formula': 'cxl% = Cancel/Demand'},
- {'Formula': 'Total Rate = Return Rate + Cancel Rate'},
- {'Formula': 'D2N Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Cancel/Return Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Demand Share =Demand for this product/Total Demand'},
- {'Formula': 'MTD = 2023/12/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'WTD = 2023/12/4~202312/7',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Formula': 'YTD = 2023/1/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'YOY = This year period / Last year period',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Formula': 'AUR = Net Revenue/Net Quantity',
-  'Comment': 'Net Revenue  = Demand amt - Cancel amt – Return amt Net quantity = Demand qty - Cancel qty – Return qty '}]
- </context>
+    You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
+    <rules>
+    1. answer should as concise as possible
+    2. if you don't know the answer to the question, just answer you don't know.
+    </rules>
 
 """
 
 knowledge_system_prompt_dict['sonnet-20240229v1-0'] = """
-You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
-<rules>
-1. answer should as concise as possible
-2. if you don't know the answer to the question, just answer you don't know.
-</rules>
+    You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
+    <rules>
+    1. answer should as concise as possible
+    2. if you don't know the answer to the question, just answer you don't know.
+    </rules>
 
-<context>
-Here is a list of acronyms and their full names plus some comments, which may help you understand the context of the question.
-[{'Acronym': 'NDDC', 'Full name': 'Nike Direct Digital Commerce'},
- {'Acronym': 'D2N', 'Full name': 'Demand to Net Revenue'},
- {'Acronym': 'SKU',
-  'Full name': 'Stock Keeping Unit',
-  'Comment': 'Product code; Material number; Style color'},
- {'Acronym': 'order_dt', 'Full name': 'order_date'},
- {'Acronym': 'Owned Eco', 'Full name': 'Owned E-commerce'},
- {'Acronym': 'desc', 'Full name': 'description'},
- {'Acronym': 'etc', 'Full name': 'et cetera', 'Comment': '意为“等等”'},
- {'Acronym': 'amt', 'Full name': 'amount'},
- {'Acronym': 'qty', 'Full name': 'quantity'},
- {'Acronym': 'PE', 'Full name': 'product engine'},
- {'Acronym': 'YA', 'Full name': 'YOUNG ATHLETES'},
- {'Acronym': 'FTW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'FW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'APP', 'Full name': 'APPAREL'},
- {'Acronym': 'AP', 'Full name': 'APPAREL'},
- {'Acronym': 'EQP', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'EQ', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'NSW', 'Full name': 'NIKE SPORTSWEAR'},
- {'Acronym': 'MTD',
-  'Full name': 'Month to Date',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'WTD',
-  'Full name': 'Week to Date',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Acronym': 'YTD',
-  'Full name': 'Year to Date',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'YOY',
-  'Full name': 'Year-Over-Year',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Acronym': 'cxl', 'Full name': 'Cancel'},
- {'Acronym': 'rtn', 'Full name': 'Return'},
- {'Acronym': 'cxl%', 'Full name': 'Cancel Rate'},
- {'Acronym': 'rtn%', 'Full name': 'Return Rate'},
- {'Acronym': 'LY', 'Full name': 'Last year'},
- {'Acronym': 'CY', 'Full name': 'Current year'},
- {'Acronym': 'TY', 'Full name': 'This year'},
- {'Acronym': 'MKD', 'Full name': 'Markdown'},
- {'Acronym': 'MD', 'Full name': 'Markdown'},
- {'Acronym': 'AUR', 'Full name': 'Average unit retail'},
- {'Acronym': 'diff', 'Full name': 'different'},
- {'Acronym': 'FY', 'Full name': 'fiscal year'}]
- Here's a list of formulas that may help you answer the question.
- [{'Formula': 'Net Demand = Demand - Cancel'},
- {'Formula': 'Net Revenue = Demand - Cancel - Return'},
- {'Formula': 'Return Rate = Return/Demand'},
- {'Formula': 'Cancel Rate = Cancel/Demand'},
- {'Formula': 'rtn% = Return/Demand'},
- {'Formula': 'cxl% = Cancel/Demand'},
- {'Formula': 'Total Rate = Return Rate + Cancel Rate'},
- {'Formula': 'D2N Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Cancel/Return Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Demand Share =Demand for this product/Total Demand'},
- {'Formula': 'MTD = 2023/12/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'WTD = 2023/12/4~202312/7',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Formula': 'YTD = 2023/1/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'YOY = This year period / Last year period',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Formula': 'AUR = Net Revenue/Net Quantity',
-  'Comment': 'Net Revenue  = Demand amt - Cancel amt – Return amt Net quantity = Demand qty - Cancel qty – Return qty '}]
- </context>
 """
 
 knowledge_system_prompt_dict['sonnet-3-5-20240620v1-0'] = """
-You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
-<rules>
-1. answer should as concise as possible
-2. if you don't know the answer to the question, just answer you don't know.
-</rules>
+    You are a knowledge QA bot. And please answer questions based on the knowledge context and existing knowledge
+    <rules>
+    1. answer should as concise as possible
+    2. if you don't know the answer to the question, just answer you don't know.
+    </rules>
 
-<context>
-Here is a list of acronyms and their full names plus some comments, which may help you understand the context of the question.
-[{'Acronym': 'NDDC', 'Full name': 'Nike Direct Digital Commerce'},
- {'Acronym': 'D2N', 'Full name': 'Demand to Net Revenue'},
- {'Acronym': 'SKU',
-  'Full name': 'Stock Keeping Unit',
-  'Comment': 'Product code; Material number; Style color'},
- {'Acronym': 'order_dt', 'Full name': 'order_date'},
- {'Acronym': 'Owned Eco', 'Full name': 'Owned E-commerce'},
- {'Acronym': 'desc', 'Full name': 'description'},
- {'Acronym': 'etc', 'Full name': 'et cetera', 'Comment': '意为“等等”'},
- {'Acronym': 'amt', 'Full name': 'amount'},
- {'Acronym': 'qty', 'Full name': 'quantity'},
- {'Acronym': 'PE', 'Full name': 'product engine'},
- {'Acronym': 'YA', 'Full name': 'YOUNG ATHLETES'},
- {'Acronym': 'FTW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'FW', 'Full name': 'FOOTWEAR'},
- {'Acronym': 'APP', 'Full name': 'APPAREL'},
- {'Acronym': 'AP', 'Full name': 'APPAREL'},
- {'Acronym': 'EQP', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'EQ', 'Full name': 'EQUIPMENT'},
- {'Acronym': 'NSW', 'Full name': 'NIKE SPORTSWEAR'},
- {'Acronym': 'MTD',
-  'Full name': 'Month to Date',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'WTD',
-  'Full name': 'Week to Date',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Acronym': 'YTD',
-  'Full name': 'Year to Date',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Acronym': 'YOY',
-  'Full name': 'Year-Over-Year',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Acronym': 'cxl', 'Full name': 'Cancel'},
- {'Acronym': 'rtn', 'Full name': 'Return'},
- {'Acronym': 'cxl%', 'Full name': 'Cancel Rate'},
- {'Acronym': 'rtn%', 'Full name': 'Return Rate'},
- {'Acronym': 'LY', 'Full name': 'Last year'},
- {'Acronym': 'CY', 'Full name': 'Current year'},
- {'Acronym': 'TY', 'Full name': 'This year'},
- {'Acronym': 'MKD', 'Full name': 'Markdown'},
- {'Acronym': 'MD', 'Full name': 'Markdown'},
- {'Acronym': 'AUR', 'Full name': 'Average unit retail'},
- {'Acronym': 'diff', 'Full name': 'different'},
- {'Acronym': 'FY', 'Full name': 'fiscal year'}]
- Here's a list of formulas that may help you answer the question.
- [{'Formula': 'Net Demand = Demand - Cancel'},
- {'Formula': 'Net Revenue = Demand - Cancel - Return'},
- {'Formula': 'Return Rate = Return/Demand'},
- {'Formula': 'Cancel Rate = Cancel/Demand'},
- {'Formula': 'rtn% = Return/Demand'},
- {'Formula': 'cxl% = Cancel/Demand'},
- {'Formula': 'Total Rate = Return Rate + Cancel Rate'},
- {'Formula': 'D2N Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Cancel/Return Rate = Return Rate + Cancel Rate'},
- {'Formula': 'Demand Share =Demand for this product/Total Demand'},
- {'Formula': 'MTD = 2023/12/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current month up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'WTD = 2023/12/4~202312/7',
-  'Comment': "It's the period starting from the beginning of the current week up until now, but not including today's date, because it might not be complete yet.The week start at Monday."},
- {'Formula': 'YTD = 2023/1/1~202312/7',
-  'Comment': "It's the period starting from the beginning of the current year up until now, but not including today's date, because it might not be complete yet."},
- {'Formula': 'YOY = This year period / Last year period',
-  'Comment': 'Year-over-year (YOY) is a financial term used to compare data for a specific period of time with the corresponding period from the previous year. It is a way to analyze and assess the growth or decline of a particular variable over a twelve-month period.'},
- {'Formula': 'AUR = Net Revenue/Net Quantity',
-  'Comment': 'Net Revenue  = Demand amt - Cancel amt – Return amt Net quantity = Demand qty - Cancel qty – Return qty '}]
- </context>
 """
 
 knowledge_user_prompt_dict['mixtral-8x7b-instruct-0'] = """
-Here is the input query: {question}. 
-Please generate queries based on the input query.
-"""
+    Here is some information to help you understand.
+    <context>
+    {context_text}
+    </context>
+    Put your answer in Chinese in the <answer></answer> tags.
+    If asked similar questions like ”我能问那些问题“, please return to the question about data set statistics.
+    PS：
+        {example_question}
+    The question is : {question}. 
+    """
 
 knowledge_user_prompt_dict['llama3-70b-instruct-0'] = """
-Here is the input query: {question}. 
-Please generate queries based on the input query.
-"""
+    Here is some information to help you understand.
+    <context>
+    {context_text}
+    </context>
+    Put your answer in Chinese in the <answer></answer> tags.
+    If asked similar questions like ”我能问那些问题“, please return to the question about data set statistics.
+    PS：
+        {example_question}
+    The question is : {question}. 
+    """
 
 knowledge_user_prompt_dict['haiku-20240307v1-0'] = """
-Here is the input query: {question}. 
-Please generate queries based on the input query.
-"""
+    Here is some information to help you understand.
+    <context>
+    {context_text}
+    </context>
+    Put your answer in Chinese in the <answer></answer> tags.
+    If asked similar questions like ”我能问那些问题“, please return to the question about data set statistics.
+    PS：
+        {example_question}
+    The question is : {question}. 
+    """
 
 knowledge_user_prompt_dict['sonnet-20240229v1-0'] = """
-Here is the input query: {question}. 
-Please generate queries based on the input query.
-"""
+    Here is some information to help you understand.
+    <context>
+    {context_text}
+    </context>
+    Put your answer in Chinese in the <answer></answer> tags.
+    If asked similar questions like ”我能问那些问题“, please return to the question about data set statistics.
+    PS：
+        {example_question}
+    The question is : {question}. 
+    """
 
 knowledge_user_prompt_dict['sonnet-3-5-20240620v1-0'] = """
-Here is the input query: {question}. 
-Please generate queries based on the input query.
-"""
+    Here is some information to help you understand.
+    <context>
+    {context_text}
+    </context>
+    Put your answer in Chinese in the <answer></answer> tags.
+    If asked similar questions like ”我能问那些问题“, please return to the question about data set statistics.
+    PS：
+        {example_question}
+    The question is : {question}. 
+    """
 
 # agent任务拆分
 agent_system_prompt_dict['mixtral-8x7b-instruct-0'] = """
@@ -2336,17 +2030,9 @@ You ALWAYS follow these guidelines when writing your response:
   - `raw`: 明细查询
 - viz_type: 图表类型,常见图表类型的枚举值, 可视化类型需要根据用户问题进行推断, 默认可设置为table格式
    - `table`: 表格
-   - `bar`: 柱状图
+   - `dist_bar`: 柱状图
    - `line`: 折线图
-   - `pie`: 饼图
-   - `area`: 面积图
-   - `scatter`: 散点图
-   - `heatmap`: 热力图
-   - `box_plot`: 箱线图
-   - `big_number`: 大数字
-   - `big_number_total`: 总大数字
-   - `bubble`: 气泡图
-   - bullet`: 子弹图
+   - `pie`: 饼图   饼图时只允许出现一个指标,key值也变为metric,而不是metrics
 - granularity_sqla: 时间粒度列. 数据时间粒度列，用于时间过滤，通常选择数据集中主时间列
 - time_range: 时间范围. 时间范围，用于时间过滤。这个参数通常设置"No filter"，我们利用adhoc_filters参数来实现时间过滤
 - groupby: 分组字段. 用于分组，通常是维度字段。例如["country", "product_category"]列表格式
@@ -2434,17 +2120,9 @@ You ALWAYS follow these guidelines when writing your response:
   - `raw`: 明细查询
 - viz_type: 图表类型,常见图表类型的枚举值, 可视化类型需要根据用户问题进行推断, 默认可设置为table格式
    - `table`: 表格
-   - `bar`: 柱状图
+   - `dist_bar`: 柱状图
    - `line`: 折线图
-   - `pie`: 饼图
-   - `area`: 面积图
-   - `scatter`: 散点图
-   - `heatmap`: 热力图
-   - `box_plot`: 箱线图
-   - `big_number`: 大数字
-   - `big_number_total`: 总大数字
-   - `bubble`: 气泡图
-   - bullet`: 子弹图
+   - `pie`: 饼图   饼图时只允许出现一个指标,key值也变为metric,而不是metrics
 - granularity_sqla: 时间粒度列. 数据时间粒度列，用于时间过滤，通常选择数据集中主时间列
 - time_range: 时间范围. 时间范围，用于时间过滤。这个参数通常设置"No filter"，我们利用adhoc_filters参数来实现时间过滤
 - groupby: 分组字段. 用于分组，通常是维度字段。例如["country", "product_category"]列表格式
@@ -2532,17 +2210,9 @@ You ALWAYS follow these guidelines when writing your response:
   - `raw`: 明细查询
 - viz_type: 图表类型,常见图表类型的枚举值, 可视化类型需要根据用户问题进行推断, 默认可设置为table格式
    - `table`: 表格
-   - `bar`: 柱状图
+   - `dist_bar`: 柱状图
    - `line`: 折线图
-   - `pie`: 饼图
-   - `area`: 面积图
-   - `scatter`: 散点图
-   - `heatmap`: 热力图
-   - `box_plot`: 箱线图
-   - `big_number`: 大数字
-   - `big_number_total`: 总大数字
-   - `bubble`: 气泡图
-   - bullet`: 子弹图
+   - `pie`: 饼图   饼图时只允许出现一个指标,key值也变为metric,而不是metrics
 - granularity_sqla: 时间粒度列. 数据时间粒度列，用于时间过滤，通常选择数据集中主时间列
 - time_range: 时间范围. 时间范围，用于时间过滤。这个参数通常设置"No filter"，我们利用adhoc_filters参数来实现时间过滤
 - groupby: 分组字段. 用于分组，通常是维度字段。例如["country", "product_category"]列表格式
@@ -2630,17 +2300,9 @@ You ALWAYS follow these guidelines when writing your response:
   - `raw`: 明细查询
 - viz_type: 图表类型,常见图表类型的枚举值, 可视化类型需要根据用户问题进行推断, 默认可设置为table格式
    - `table`: 表格
-   - `bar`: 柱状图
+   - `dist_bar`: 柱状图
    - `line`: 折线图
-   - `pie`: 饼图
-   - `area`: 面积图
-   - `scatter`: 散点图
-   - `heatmap`: 热力图
-   - `box_plot`: 箱线图
-   - `big_number`: 大数字
-   - `big_number_total`: 总大数字
-   - `bubble`: 气泡图
-   - bullet`: 子弹图
+   - `pie`: 饼图   饼图时只允许出现一个指标,key值也变为metric,而不是metrics
 - granularity_sqla: 时间粒度列. 数据时间粒度列，用于时间过滤，通常选择数据集中主时间列
 - time_range: 时间范围. 时间范围，用于时间过滤。这个参数通常设置"No filter"，我们利用adhoc_filters参数来实现时间过滤
 - groupby: 分组字段. 用于分组，通常是维度字段。例如["country", "product_category"]列表格式
@@ -2728,17 +2390,9 @@ You ALWAYS follow these guidelines when writing your response:
   - `raw`: 明细查询
 - viz_type: 图表类型,常见图表类型的枚举值, 可视化类型需要根据用户问题进行推断, 默认可设置为table格式
    - `table`: 表格
-   - `bar`: 柱状图
+   - `dist_bar`: 柱状图
    - `line`: 折线图
-   - `pie`: 饼图
-   - `area`: 面积图
-   - `scatter`: 散点图
-   - `heatmap`: 热力图
-   - `box_plot`: 箱线图
-   - `big_number`: 大数字
-   - `big_number_total`: 总大数字
-   - `bubble`: 气泡图
-   - bullet`: 子弹图
+   - `pie`: 饼图   饼图时只允许出现一个指标,key值也变为metric,而不是metrics
 - granularity_sqla: 时间粒度列. 数据时间粒度列，用于时间过滤，通常选择数据集中主时间列
 - time_range: 时间范围. 时间范围，用于时间过滤。这个参数通常设置"No filter"，我们利用adhoc_filters参数来实现时间过滤
 - groupby: 分组字段. 用于分组，通常是维度字段。例如["country", "product_category"]列表格式
@@ -3281,13 +2935,80 @@ def generate_query_rewrite_prompt(prompt_map, search_box, model_id, history_quer
     return user_prompt, system_prompt
 
 
-def generate_knowledge_prompt(prompt_map, search_box, model_id):
+def generate_knowledge_prompt(prompt_map, search_box, model_id, dialect, table_info, question_example):
+    # 获取数据集信息
+    context_template = """
+        表名：{name}
+        schema：{schema}
+        display_name：{schema}.{name}
+        表描述：{description}
+        表逻辑：{model_logic_detail}
+        数据集主键：{key}
+        数据集类型：{dataset_type}
+        数据库引擎：{database_engine}
+        Tags tree： {admin_tags}
+        category_path：{category_path}
+        设计者工号： {designer_code}
+        设计者姓名： {designer_name}
+        创建时间: {create_time}
+        更新时间: {update_time}
+        维度属性枚举值：{col_dims}
+        数据集分类：{model_dataset_type_name}
+        数据集字段信息：
+        {col_info}
+        建表语句:
+        {create_table_sql}
+        """
+    context = []
+    for table_name, table_data in table_info.items():
+        create_table_sql = table_data["col_a"] if 'col_a' in table_data else table_data["ddl"]
+        res = get_knowledege_context(database_id=table_data['database_id'],
+                                     schema=table_name.split('.')[0],
+                                     table_name=table_name.split('.')[1],
+                                     database_engine=dialect)
+        col_info = []
+        for col in res['columns']:
+            col_info.append(
+                {
+                    "字段名": col["name"],
+                    "字段描述": col["description"],
+                    "字段属性": col["description"],
+                    "维度分类": col["col_dim"],
+                    "字段类型": col["col_type"],
+                    "指标分组": col["col_metric_group_name"],
+                    "字段逻辑描述": col["col_logic_detail"]
+                }
+            )
+        context.append(
+            context_template.format(
+                name=res['name'],
+                schema=res['schema'],
+                description=res['description'],
+                model_logic_detail=res['model_logic_detail'].replace("\n", ""),
+                key=res['key'],
+                dataset_type=res['dataset_type'],
+                database_engine=dialect,
+                admin_tags=res['admin_tags'],
+                category_path=res['category_path'],
+                designer_code=res['designer_code'],
+                designer_name=res['designer_name'],
+                create_time=res['create_time'],
+                update_time=res['update_time'],
+                col_dims=res['col_dims'],
+                model_dataset_type_name=res['model_dataset_type_name'],
+                col_info=json.dumps(col_info, ensure_ascii=False),
+                create_table_sql=create_table_sql
+            )
+        )
+    # 拼装context
     name = support_model_ids_map[model_id]
 
     system_prompt = prompt_map.get('knowledge', {}).get('system_prompt', {}).get(name)
     user_prompt = prompt_map.get('knowledge', {}).get('user_prompt', {}).get(name)
-
-    user_prompt = user_prompt.format(question=search_box)
+    user_prompt = user_prompt.format(question=search_box,
+                                     context_text="\n===============================\n".join(context),
+                                     example_question="\n".join(question_example)
+                                     )
 
     return user_prompt, system_prompt
 

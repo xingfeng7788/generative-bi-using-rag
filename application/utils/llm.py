@@ -460,9 +460,9 @@ def get_query_rewrite(model_id, search_box, prompt_map, chat_history):
         return query_rewrite
 
 
-def knowledge_search(model_id, search_box, prompt_map):
+def knowledge_search(model_id, search_box, prompt_map, dialect, table_info, question_example):
     try:
-        user_prompt, system_prompt = generate_knowledge_prompt(prompt_map, search_box, model_id)
+        user_prompt, system_prompt = generate_knowledge_prompt(prompt_map, search_box, model_id, dialect, table_info, question_example)
         max_tokens = 2048
         final_response = invoke_llm_model(model_id, system_prompt, user_prompt, max_tokens, False)
         return final_response
