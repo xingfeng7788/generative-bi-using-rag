@@ -11,7 +11,7 @@ function App() {
       <BrowserRouter>
         <AlertMsg />
         <CustomTopNavigation />
-        <div style={{ height: "56px", backgroundColor: "#000716" }}>&nbsp;</div>
+        <div style={{ height: "50px", backgroundColor: "#000716" }}>&nbsp;</div>
         <div>
           <PageRouter />
         </div>
