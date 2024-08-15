@@ -10,7 +10,10 @@ logger = logging.getLogger(__name__)
 
 def get_opensearch_cluster_client():
     domain, host, port, opensearch_user, opensearch_password, region_name, ssl = opensearch_info['domain'], opensearch_info['host'], opensearch_info['port'], opensearch_info['username'], opensearch_info['password'], opensearch_info['region'], opensearch_info['ssl']
-    auth = (opensearch_user, opensearch_password)
+    if opensearch_user and opensearch_password:
+        auth = (opensearch_user, opensearch_password)
+    else:
+        auth = None
     if len(host) == 0:
         host = get_opensearch_endpoint(domain, region_name)
 
