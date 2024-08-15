@@ -23,6 +23,16 @@ def get_generated_sql(generated_sql_response):
     return sql
 
 
+def get_generated_knowledege_answer(answer_response):
+    answer = ""
+    try:
+        return answer_response.split("<answer>")[1].split("</answer>")[0]
+    except IndexError:
+        logger.error("No SQL found in the LLM's response")
+        logger.error(answer_response)
+    return answer
+
+
 def add_row_level_filter(sql, tables_info):
     if os.getenv("ROW_LEVEL_SECURITY_FILTER_ENABLED") == '1':
         rls_map = {}

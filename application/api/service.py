@@ -18,6 +18,7 @@ from utils.llm import text_to_sql, get_query_intent, create_vector_embedding_wit
     generate_suggested_question, data_visualization, get_query_rewrite, optimize_query
 from utils.opensearch import get_retrieve_opensearch
 from utils.env_var import opensearch_info
+from utils.question import get_question_examples
 from utils.text_search import normal_text_search, agent_text_search
 from utils.tool import generate_log_id, get_current_time, get_generated_sql_explain, get_generated_sql, \
     add_row_level_filter, change_class_to_str
@@ -210,7 +211,13 @@ def ask(question: Question) -> Answer:
                                                   entity_slot, opensearch_info,
                                                   selected_profile, use_rag_flag)
     elif knowledge_search_flag:
-        response = knowledge_search(search_box=search_box, model_id=model_type, prompt_map=prompt_map)
+        question_example = get_question_examples(all_profiles, selected_profile)
+        response = knowledge_search(search_box=search_box,
+                                    model_id=model_type,
+                                    prompt_map=prompt_map,
+                                    dialect=database_profile['db_type'],
+                                    table_info=database_profile['tables_info'],
+                                    question_example=question_example)
 
         knowledge_search_result.knowledge_response = response
         answer = Answer(query=search_box, query_intent="knowledge_search",
@@ -500,7 +507,13 @@ async def ask_websocket(websocket: WebSocket, question: Question):
                                                                   entity_slot, opensearch_info,
                                                                   selected_profile, use_rag_flag, user_id)
     elif knowledge_search_flag:
-        response = knowledge_search(search_box=search_box, model_id=model_type, prompt_map=prompt_map)
+        question_example = get_question_examples(all_profiles, selected_profile)
+        response = knowledge_search(search_box=search_box,
+                                    model_id=model_type,
+                                    prompt_map=prompt_map,
+                                    dialect=database_profile['db_type'],
+                                    table_info=database_profile['tables_info'],
+                                    question_example=question_example)
 
         knowledge_search_result.knowledge_response = response
         answer = Answer(query=search_box, query_rewrite=query_rewrite, query_intent="knowledge_search",

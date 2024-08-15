@@ -80,11 +80,11 @@ required_syntax_map = {
             'sonnet-3-5-20240620v1-0': []
         },
         'user_prompt': {
-            'mixtral-8x7b-instruct-0': ['question'],
-            'llama3-70b-instruct-0': ['question'],
-            'haiku-20240307v1-0': ['question'],
-            'sonnet-20240229v1-0': ['question'],
-            'sonnet-3-5-20240620v1-0': ['question']
+            'mixtral-8x7b-instruct-0': ['context_text', 'example_question', 'question'],
+            'llama3-70b-instruct-0': ['context_text', 'example_question', 'question'],
+            'haiku-20240307v1-0': ['context_text', 'example_question', 'question'],
+            'sonnet-20240229v1-0': ['context_text', 'example_question', 'question'],
+            'sonnet-3-5-20240620v1-0': ['context_text', 'example_question', 'question'],
         }
     },
     'agent': {

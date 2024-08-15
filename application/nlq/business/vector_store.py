@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class VectorStore:
-    opensearch_dao = OpenSearchDao(AOS_HOST, AOS_PORT, AOS_USER, AOS_PASSWORD)
+    opensearch_dao = OpenSearchDao()
     if len(bedrock_ak_sk_info) == 0:
         bedrock_client = boto3.client(service_name='bedrock-runtime', region_name=BEDROCK_REGION)
     else:

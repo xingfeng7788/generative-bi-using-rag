@@ -1,5 +1,5 @@
 import boto3
-from opensearchpy import OpenSearch, RequestsHttpConnection
+from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
 import logging
 from utils.llm import create_vector_embedding_with_bedrock, create_vector_embedding_with_sagemaker
@@ -8,17 +8,8 @@ from utils.env_var import opensearch_info, SAGEMAKER_ENDPOINT_EMBEDDING, AOS_IND
 logger = logging.getLogger(__name__)
 
 
-def get_opensearch_cluster_client(domain, host, port, opensearch_user, opensearch_password, region_name):
-    """
-    Get an OpenSearch Client
-    :param domain:
-    :param host:
-    :param port:
-    :param opensearch_user:
-    :param opensearch_password:
-    :param region_name:
-    :return:
-    """
+def get_opensearch_cluster_client():
+    domain, host, port, opensearch_user, opensearch_password, region_name, ssl = opensearch_info['domain'], opensearch_info['host'], opensearch_info['port'], opensearch_info['username'], opensearch_info['password'], opensearch_info['region'], opensearch_info['ssl']
     auth = (opensearch_user, opensearch_password)
     if len(host) == 0:
         host = get_opensearch_endpoint(domain, region_name)
@@ -28,7 +19,7 @@ def get_opensearch_cluster_client(domain, host, port, opensearch_user, opensearc
         hosts=[{'host': host, 'port': port}],
         http_compress=True,  # enables gzip compression for request bodies
         http_auth=auth,
-        use_ssl=True,
+        use_ssl=ssl,
         verify_certs=False,
         ssl_assert_hostname=False,
         ssl_show_warn=False
@@ -182,12 +173,6 @@ def get_retrieve_opensearch(opensearch_info, query, search_type, selected_profil
         records_with_embedding = create_vector_embedding_with_bedrock(query, index_name=index_name)
     retrieve_result = retrieve_results_from_opensearch(
         index_name=index_name,
-        region_name=opensearch_info['region'],
-        domain=opensearch_info['domain'],
-        opensearch_user=opensearch_info['username'],
-        opensearch_password=opensearch_info['password'],
-        host=opensearch_info['host'],
-        port=opensearch_info['port'],
         query_embedding=records_with_embedding['vector_field'],
         top_k=top_k,
         profile_name=selected_profile,
@@ -201,10 +186,8 @@ def get_retrieve_opensearch(opensearch_info, query, search_type, selected_profil
     return filter_retrieve_result
 
 
-def retrieve_results_from_opensearch(index_name, region_name, domain, opensearch_user, opensearch_password,
-                                     query_embedding, top_k=3, host='', port=443, profile_name=None, sample_type=None):
-    opensearch_client = get_opensearch_cluster_client(domain, host, port, opensearch_user, opensearch_password,
-                                                      region_name)
+def retrieve_results_from_opensearch(index_name, query_embedding, top_k=3, profile_name=None, sample_type=None):
+    opensearch_client = get_opensearch_cluster_client()
     search_query = {
         "size": top_k,  # Adjust the size as needed to retrieve more or fewer results
         "query": {
@@ -243,8 +226,7 @@ def retrieve_results_from_opensearch(index_name, region_name, domain, opensearch
 
 def upload_results_to_opensearch(region_name, domain, opensearch_user, opensearch_password, index_name, query, sql,
                                  host='', port=443):
-    opensearch_client = get_opensearch_cluster_client(domain, host, port, opensearch_user, opensearch_password,
-                                                      region_name)
+    opensearch_client = get_opensearch_cluster_client()
 
     # Vector embedding using Amazon Bedrock Titan text embedding
     logger.info(f"Creating embeddings for records")
@@ -362,19 +344,8 @@ def opensearch_index_init():
     :return:
     """
     try:
-        auth = (opensearch_info["username"], opensearch_info["password"])
-        host = opensearch_info["host"]
-        port = opensearch_info["port"]
-        # Create the client with SSL/TLS enabled, but hostname verification disabled.
-        opensearch_client = OpenSearch(
-            hosts=[{'host': host, 'port': port}],
-            http_compress=True,  # enables gzip compression for request bodies
-            http_auth=auth,
-            use_ssl=True,
-            verify_certs=False,
-            ssl_assert_hostname=False,
-            ssl_show_warn=False
-        )
+
+        opensearch_client = get_opensearch_cluster_client()
         index_list = [opensearch_info['sql_index'], opensearch_info['ner_index'], opensearch_info['agent_index']]
         dimension = opensearch_info['embedding_dimension']
         index_create_success = True

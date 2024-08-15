@@ -1,9 +1,9 @@
 import logging
 
-from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
 
 from utils.llm import create_vector_embedding_with_bedrock
+from utils.opensearch import get_opensearch_cluster_client
 
 logger = logging.getLogger(__name__)
 
@@ -16,19 +16,10 @@ def put_bulk_in_opensearch(list, client):
 
 class OpenSearchDao:
 
-    def __init__(self, host, port, opensearch_user, opensearch_password):
-        auth = (opensearch_user, opensearch_password)
+    def __init__(self):
 
         # Create the client with SSL/TLS enabled, but hostname verification disabled.
-        self.opensearch_client = OpenSearch(
-            hosts=[{'host': host, 'port': port}],
-            http_compress=True,  # enables gzip compression for request bodies
-            http_auth=auth,
-            use_ssl=True,
-            verify_certs=False,
-            ssl_assert_hostname=False,
-            ssl_show_warn=False
-        )
+        self.opensearch_client = get_opensearch_cluster_client()
 
     def retrieve_samples(self, index_name, profile_name, sample_type):
         # search all docs in the index filtered by profile_name

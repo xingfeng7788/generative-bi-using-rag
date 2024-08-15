@@ -1,6 +1,5 @@
 import logging
 import os
-from utils.env_var import opensearch_info
 from utils.opensearch import check_opensearch_index, get_opensearch_cluster_client
 
 logger = logging.getLogger(__name__)
@@ -41,10 +40,7 @@ class QueryLogEntity:
 class OpenSearchQueryLogDao:
     def __init__(self):
 
-        self.opensearch_client = get_opensearch_cluster_client(opensearch_info["domain"], opensearch_info["host"],
-                                                               opensearch_info["port"],
-                                                               opensearch_info["username"], opensearch_info["password"],
-                                                               opensearch_info["region"])
+        self.opensearch_client = get_opensearch_cluster_client()
         if not self.exists():
             self.create_index()
 
