@@ -589,10 +589,10 @@ async def ask_websocket(websocket: WebSocket, question: Question):
                     sql_search_result.sql_gen_process = current_nlq_chain.get_generated_sql_explain().strip()
             else:
                 sql_search_result.sql = "-1"
-        await response_websocket(websocket, session_id, "Database SQL Execution", ContentEnum.STATE, "start", user_id)
-        search_intent_result = get_sql_result_tool(database_profile,
-                                                   current_nlq_chain.get_generated_sql())
-        await response_websocket(websocket, session_id, "Database SQL Execution", ContentEnum.STATE, "end", user_id)
+            await response_websocket(websocket, session_id, "Database SQL Execution", ContentEnum.STATE, "start", user_id)
+            search_intent_result = get_sql_result_tool(database_profile,
+                                                       current_nlq_chain.get_generated_sql())
+            await response_websocket(websocket, session_id, "Database SQL Execution", ContentEnum.STATE, "end", user_id)
 
         if search_intent_result["status_code"] == 500:
             sql_search_result.data_analyse = "The query results are temporarily unavailable, please switch to debugging webpage to try the same query and check the log file for more information."
