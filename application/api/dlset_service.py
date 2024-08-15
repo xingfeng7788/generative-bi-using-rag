@@ -16,6 +16,7 @@ from utils.llm import get_query_intent, knowledge_search, \
     generate_suggested_question, text_to_json, get_query_rewrite
 from utils.opensearch import get_retrieve_opensearch
 from utils.env_var import opensearch_info
+from utils.question import get_question_examples
 from utils.tool import generate_log_id, get_current_time, get_generated_json, get_generated_think, change_class_to_str
 from .schemas import SupersetAnswer, AgentSearchResult, KnowledgeSearchResult, DlsetQuestion, JSONSearchResult
 from .enum import ContentEnum
@@ -232,7 +233,13 @@ async def dlset_ask_websocket(websocket: WebSocket, question: DlsetQuestion):
                                                                   selected_profile, use_rag_flag, user_id, table_id)
     elif knowledge_search_flag:
         # 知识搜索
-        response = knowledge_search(search_box=search_box, model_id=model_type, prompt_map=prompt_map)
+        question_example = get_question_examples(all_profiles, selected_profile)
+        response = knowledge_search(search_box=search_box,
+                                    model_id=model_type,
+                                    prompt_map=prompt_map,
+                                    dialect=database_profile['db_type'],
+                                    table_info=database_profile['tables_info'],
+                                    question_example=question_example)
 
         knowledge_search_result.knowledge_response = response
         answer = SupersetAnswer(query=search_box, query_intent="knowledge_search",
@@ -534,7 +541,13 @@ async def dlset_ask_stream(question: DlsetQuestion):
                 yield data
     elif knowledge_search_flag:
         # 知识搜索
-        response = knowledge_search(search_box=search_box, model_id=model_type, prompt_map=prompt_map)
+        question_example = get_question_examples(all_profiles, selected_profile)
+        response = knowledge_search(search_box=search_box,
+                                    model_id=model_type,
+                                    prompt_map=prompt_map,
+                                    dialect=database_profile['db_type'],
+                                    table_info=database_profile['tables_info'],
+                                    question_example=question_example)
 
         knowledge_search_result.knowledge_response = response
         answer = SupersetAnswer(query=search_box, query_intent="knowledge_search",

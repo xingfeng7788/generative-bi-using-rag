@@ -19,6 +19,7 @@ from utils.navigation import make_sidebar
 from utils.apis import get_sql_result_tool
 from utils.prompts.generate_prompt import prompt_map_dict
 from utils.opensearch import get_retrieve_opensearch
+from utils.question import get_question_examples
 from utils.text_search import agent_text_search
 from utils.tool import get_generated_sql
 from utils.env_var import opensearch_info
@@ -486,8 +487,13 @@ def main():
                                                                             selected_profile, use_rag_flag)
                     elif knowledge_search_flag:
                         with st.spinner('Performing knowledge search...'):
-                            response = knowledge_search(search_box=search_box, model_id=model_type,
-                                                        prompt_map=prompt_map)
+                            question_example = get_question_examples(all_profiles, selected_profile)
+                            response = knowledge_search(search_box=search_box,
+                                                        model_id=model_type,
+                                                        prompt_map=prompt_map,
+                                                        dialect=database_profile['db_type'],
+                                                        table_info=database_profile['tables_info'],
+                                                        question_example=question_example)
                             logger.info(f'got llm response for knowledge_search: {response}')
                             st.markdown(f'This is a knowledge search question.\n{response}')
 

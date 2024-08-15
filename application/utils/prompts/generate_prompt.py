@@ -2962,44 +2962,56 @@ def generate_knowledge_prompt(prompt_map, search_box, model_id, dialect, table_i
     context = []
     for table_name, table_data in table_info.items():
         create_table_sql = table_data["col_a"] if 'col_a' in table_data else table_data["ddl"]
-        res = get_knowledege_context(database_id=table_data['database_id'],
+        res = get_knowledege_context(database_id=int(table_data['database_id']),
                                      schema=table_name.split('.')[0],
                                      table_name=table_name.split('.')[1],
                                      database_engine=dialect)
-        col_info = []
-        for col in res['columns']:
-            col_info.append(
-                {
-                    "字段名": col["name"],
-                    "字段描述": col["description"],
-                    "字段属性": col["description"],
-                    "维度分类": col["col_dim"],
-                    "字段类型": col["col_type"],
-                    "指标分组": col["col_metric_group_name"],
-                    "字段逻辑描述": col["col_logic_detail"]
-                }
+        if res:
+            col_info = []
+            for col in res['columns']:
+                col_info.append(
+                    {
+                        "字段名": col["name"],
+                        "字段描述": col["description"],
+                        "字段属性": col["description"],
+                        "维度分类": col["col_dim"],
+                        "字段类型": col["col_type"],
+                        "指标分组": col["col_metric_group_name"],
+                        "字段逻辑描述": col["col_logic_detail"]
+                    }
+                )
+            context.append(
+                context_template.format(
+                    name=res['name'],
+                    schema=res['schema'],
+                    description=res['description'],
+                    model_logic_detail=res['model_logic_detail'].replace("\n", ""),
+                    key=res['key'],
+                    dataset_type=res['dataset_type'],
+                    database_engine=dialect,
+                    admin_tags=res['admin_tags'],
+                    category_path=res['category_path'],
+                    designer_code=res['designer_code'],
+                    designer_name=res['designer_name'],
+                    create_time=res['create_time'],
+                    update_time=res['update_time'],
+                    col_dims=res['col_dims'],
+                    model_dataset_type_name=res['model_dataset_type_name'],
+                    col_info=json.dumps(col_info, ensure_ascii=False),
+                    create_table_sql=create_table_sql
+                )
             )
-        context.append(
-            context_template.format(
-                name=res['name'],
-                schema=res['schema'],
-                description=res['description'],
-                model_logic_detail=res['model_logic_detail'].replace("\n", ""),
-                key=res['key'],
-                dataset_type=res['dataset_type'],
-                database_engine=dialect,
-                admin_tags=res['admin_tags'],
-                category_path=res['category_path'],
-                designer_code=res['designer_code'],
-                designer_name=res['designer_name'],
-                create_time=res['create_time'],
-                update_time=res['update_time'],
-                col_dims=res['col_dims'],
-                model_dataset_type_name=res['model_dataset_type_name'],
-                col_info=json.dumps(col_info, ensure_ascii=False),
-                create_table_sql=create_table_sql
+        else:
+            context.append(
+                f"""
+                                        表名：{table_name.split('.')[1]}
+                                        schema：{table_name.split('.')[0]}
+                                        display_name：{table_name}
+                                        数据库引擎：{dialect}
+                                        建表语句:
+                                        {create_table_sql}
+                                """
             )
-        )
     # 拼装context
     name = support_model_ids_map[model_id]
 

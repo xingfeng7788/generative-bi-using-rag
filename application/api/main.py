@@ -7,6 +7,7 @@ import logging
 
 from nlq.business.log_store import LogManagement
 from nlq.business.profile import ProfileManagement
+from utils.question import get_question_examples
 from utils.validate import validate_token, get_current_user
 from .enum import ContentEnum
 from .schemas import Question, Answer, Option, CustomQuestion, FeedBackInput, HistoryRequest, Message, HistoryMessage, \
@@ -31,12 +32,8 @@ def option():
 @router.get("/get_custom_question", response_model=CustomQuestion)
 def get_custom_question(data_profile: str):
     all_profiles = ProfileManagement.get_all_profiles_with_info()
-    comments = all_profiles[data_profile]['comments']
-    comments_questions = []
-    if len(comments.split("Examples:")) > 1:
-        comments_questions_txt = comments.split("Examples:")[1]
-        comments_questions = [i for i in comments_questions_txt.split("\n") if i != '']
-    custom_question = CustomQuestion(custom_question=comments_questions)
+    question_example = get_question_examples(all_profiles, data_profile)
+    custom_question = CustomQuestion(custom_question=question_example)
     return custom_question
 
 

@@ -23,6 +23,7 @@ OPENSEARCH_REGION = os.getenv('AOS_AWS_REGION')
 AOS_HOST = os.getenv('AOS_HOST')
 AOS_PORT = os.getenv('AOS_PORT')
 AOS_USER = os.getenv('AOS_USER')
+AOS_SSL = os.getenv('AOS_SSL', '0')
 AOS_PASSWORD = os.getenv('AOS_PASSWORD')
 AOS_DOMAIN = os.getenv('AOS_DOMAIN')
 
@@ -102,6 +103,7 @@ if OPENSEARCH_TYPE == "service":
     AOS_USER = opensearch_username
     AOS_PASSWORD = opensearch_password
 
+
 opensearch_info = {
     'host': AOS_HOST,
     'port': AOS_PORT,
@@ -112,7 +114,8 @@ opensearch_info = {
     'sql_index': AOS_INDEX,
     'ner_index': AOS_INDEX_NER,
     'agent_index': AOS_INDEX_AGENT,
-    'embedding_dimension': EMBEDDING_DIMENSION
+    'embedding_dimension': EMBEDDING_DIMENSION,
+    'ssl': True if AOS_SSL == '1' else False,
 }
 
 bedrock_ak_sk_info = get_bedrock_parameter()

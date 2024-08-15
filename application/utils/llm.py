@@ -14,6 +14,8 @@ from utils.prompts.generate_prompt import generate_llm_prompt, generate_sagemake
     generate_query_rewrite_prompt, generate_llm_superset_prompt, generate_llm_sql_optimizer_prompt
 
 from utils.env_var import bedrock_ak_sk_info, BEDROCK_REGION, BEDROCK_EMBEDDING_MODEL
+from utils.tool import get_generated_knowledege_answer
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -465,7 +467,9 @@ def knowledge_search(model_id, search_box, prompt_map, dialect, table_info, ques
         user_prompt, system_prompt = generate_knowledge_prompt(prompt_map, search_box, model_id, dialect, table_info, question_example)
         max_tokens = 2048
         final_response = invoke_llm_model(model_id, system_prompt, user_prompt, max_tokens, False)
-        return final_response
+        answer = get_generated_knowledege_answer(final_response)
+        logger.info(f'{answer=}')
+        return answer
     except Exception as e:
         logger.error("knowledge_search is error")
     return ""
