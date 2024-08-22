@@ -1,10 +1,10 @@
 import json
-import logging
 import os
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
-
+from utils.logging import getLogger
+logger = getLogger()
 load_dotenv()
 
 RDS_MYSQL_USERNAME = os.getenv('RDS_MYSQL_USERNAME')
@@ -92,7 +92,7 @@ def get_bedrock_parameter():
             bedrock_ak_sk_info['secret_access_key'] = BEDROCK_AWS_SECRET_ACCESS_KEY
             return bedrock_ak_sk_info
     except ClientError as e:
-        logging.error(e)
+        logger.error(e)
     return bedrock_ak_sk_info
 
 

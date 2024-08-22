@@ -3,13 +3,13 @@ import time
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
-import logging
 from nlq.business.profile import ProfileManagement
 from nlq.business.vector_store import VectorStore
 from utils.navigation import make_sidebar
 from utils.env_var import opensearch_info
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 def delete_sample(profile_name, id):
     VectorStore.delete_sample(profile_name, id)

@@ -1,11 +1,10 @@
-import logging
-
 from opensearchpy.helpers import bulk
 
 from utils.llm import create_vector_embedding_with_bedrock
 from utils.opensearch import get_opensearch_cluster_client
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 
 def put_bulk_in_opensearch(list, client):

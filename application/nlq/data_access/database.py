@@ -1,4 +1,3 @@
-import logging
 import re
 from typing import Optional, List
 
@@ -9,7 +8,8 @@ from sqlalchemy.sql.ddl import CreateTable
 
 from nlq.data_access.dynamo_connection import ConnectConfigEntity
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 db_mapping = {
             'mysql': 'mysql+pymysql',

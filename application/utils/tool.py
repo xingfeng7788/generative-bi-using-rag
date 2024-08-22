@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import re
 import time
@@ -9,8 +8,8 @@ from datetime import datetime
 from utils.sql_parse import ParsedQuery
 from utils.superset_conn import get_superset_rlf
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from utils.logging import getLogger
+logger = getLogger()
 
 
 def get_generated_sql(generated_sql_response):

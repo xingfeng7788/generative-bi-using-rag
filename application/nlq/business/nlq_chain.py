@@ -1,9 +1,8 @@
 import pandas as pd
-import re
-import logging
 from nlq.business.connection import ConnectionManagement
 from utils.apis import query_from_sql_pd
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 class NLQChain:
 

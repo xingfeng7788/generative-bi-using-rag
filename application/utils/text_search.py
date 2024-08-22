@@ -1,4 +1,3 @@
-import logging
 import os
 
 from nlq.business.connection import ConnectionManagement
@@ -7,8 +6,8 @@ from utils.llm import text_to_sql, optimize_query
 from utils.opensearch import get_retrieve_opensearch
 from utils.tool import get_generated_sql, add_row_level_filter
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from utils.logging import getLogger
+logger = getLogger()
 
 
 def normal_text_search(search_box, model_type, database_profile, entity_slot, opensearch_info, selected_profile, use_rag,
@@ -28,13 +27,13 @@ def normal_text_search(search_box, model_type, database_profile, entity_slot, op
 
         if len(entity_slot) > 0 and use_rag:
             for each_entity in entity_slot:
-                entity_retrieve = get_retrieve_opensearch(opensearch_info, each_entity, "ner",
+                entity_retrieve = get_retrieve_opensearch(each_entity, "ner",
                                                           selected_profile, 1, 0.7)
                 if len(entity_retrieve) > 0:
                     entity_slot_retrieve.extend(entity_retrieve)
 
         if use_rag:
-            retrieve_result = get_retrieve_opensearch(opensearch_info, search_box, "query",
+            retrieve_result = get_retrieve_opensearch(search_box, "query",
                                                       selected_profile, 3, 0.5, sample_type="SQL")
 
         response = text_to_sql(database_profile['tables_info'],
@@ -64,7 +63,7 @@ def normal_text_search(search_box, model_type, database_profile, entity_slot, op
     return search_result
 
 
-def agent_text_search(search_box, model_type, database_profile, entity_slot, opensearch_info, selected_profile, use_rag,
+def agent_text_search(search_box, model_type, database_profile, selected_profile, use_rag,
                       agent_cot_task_result):
     agent_search_results = []
     default_agent_search_results = []
@@ -80,10 +79,10 @@ def agent_text_search(search_box, model_type, database_profile, entity_slot, ope
             entity_slot_retrieve = []
             retrieve_result = []
             if use_rag:
-                entity_slot_retrieve = get_retrieve_opensearch(opensearch_info, each_task_query, "ner",
+                entity_slot_retrieve = get_retrieve_opensearch(each_task_query, "ner",
                                                                selected_profile, 3, 0.5)
 
-                retrieve_result = get_retrieve_opensearch(opensearch_info, each_task_query, "query",
+                retrieve_result = get_retrieve_opensearch(each_task_query, "query",
                                                           selected_profile, 3, 0.5)
             each_task_response = text_to_sql(database_profile['tables_info'],
                                              database_profile['hints'],

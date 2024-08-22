@@ -2,13 +2,13 @@ import json
 from dotenv import load_dotenv
 import os
 import boto3
-import logging
 
 from nlq.business.vector_store import VectorStore
 from utils.opensearch import get_opensearch_cluster_client, opensearch_index_init
 from utils.env_var import opensearch_info
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 load_dotenv()
 

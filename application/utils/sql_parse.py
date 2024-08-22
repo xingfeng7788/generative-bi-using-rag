@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass  # pylint: disable=wrong-import-order
 from enum import Enum
 from typing import List, Optional, Set
@@ -20,7 +19,8 @@ RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 
 class CtasMethod(str, Enum):

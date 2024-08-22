@@ -1,13 +1,13 @@
 import os
 import boto3
-import logging
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 # DynamoDB table name
 CONNECT_CONFIG_TABLE_NAME = os.getenv("DYNAMODB_CONNECT_CONFIG_TABLE_NAME", "NlqConnectConfig")

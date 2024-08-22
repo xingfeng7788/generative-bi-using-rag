@@ -1,8 +1,7 @@
-import logging
-
 from nlq.data_access.opensearch_query_log import OpenSearchQueryLogDao
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 
 class LogManagement:
@@ -11,7 +10,7 @@ class LogManagement:
 
     @classmethod
     def add_log_to_database(cls, log_id, user_id, session_id, profile_name, sql, query, intent, log_info, time_str,
-                            log_type='chat_history'):
+                            log_type='SQL'):
         cls.query_log_dao.add_log(log_id=log_id, profile_name=profile_name, user_id=user_id, session_id=session_id,
                                   sql=sql, query=query, intent=intent, log_info=log_info, time_str=time_str,
                                   log_type=log_type)
@@ -51,5 +50,5 @@ class LogManagement:
         return history_list
 
     @classmethod
-    def delete_history_by_session(cls, user_id, profile_name, session_id, log_type="chat_history"):
+    def delete_history_by_session(cls, user_id, profile_name, session_id, log_type="SQL"):
         return cls.query_log_dao.delete_history_by_session(user_id, profile_name, session_id, log_type)

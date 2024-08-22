@@ -1,9 +1,9 @@
-import logging
 from nlq.data_access.dynamo_suggested_question import SuggestedQuestionDao, SuggestedQuestionEntity
 from datetime import datetime, timezone
 from utils.constant import ACTIVE_PROMPT_NAME, DEFAULT_PROMPT_NAME
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 class SuggestedQuestionManagement:
     sq_dao = SuggestedQuestionDao()

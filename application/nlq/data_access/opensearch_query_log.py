@@ -1,15 +1,15 @@
-import logging
 import os
 from utils.opensearch import check_opensearch_index, get_opensearch_cluster_client
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 QUERY_LOG_TABLE_NAME = os.getenv("DYNAMODB_QUERY_LOG_TABLE_NAME", "NlqQueryLogging")
 
 
 class QueryLogEntity:
 
-    def __init__(self, log_id, profile_name, user_id, session_id, sql, query, intent, log_info, time_str, log_type='sql'):
+    def __init__(self, log_id, profile_name, user_id, session_id, sql, query, intent, log_info, time_str, log_type='SQL'):
         self.log_id = log_id
         self.profile_name = profile_name
         self.user_id = user_id
@@ -123,7 +123,7 @@ class OpenSearchQueryLogDao:
             history_list.append(hit.get('_source'))
         return history_list
 
-    def get_history_by_user_profile(self, user_id, profile_name, log_type="chat_history"):
+    def get_history_by_user_profile(self, user_id, profile_name, log_type="SQL"):
         # 目前暂时最多返回10000条历史记录
         query = {
             "query": {
@@ -146,7 +146,7 @@ class OpenSearchQueryLogDao:
             history_list.append(hit.get('_source'))
         return history_list
 
-    def get_all_sessions(self, user_id, profile_name, log_type="chat_history"):
+    def get_all_sessions(self, user_id, profile_name, log_type="SQL"):
         # 获取用户所有的session_id 再通过session_id 获取聊天记录
         query = {
             "size": 0,
@@ -197,7 +197,7 @@ class OpenSearchQueryLogDao:
             )
         return history_list
 
-    def delete_history_by_session(self, user_id, profile_name, session_id, log_type="chat_history"):
+    def delete_history_by_session(self, user_id, profile_name, session_id, log_type="SQL"):
         try:
             query = {
                 "query": {

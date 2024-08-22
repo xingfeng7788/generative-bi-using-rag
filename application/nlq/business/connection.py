@@ -1,8 +1,8 @@
-import logging
 from nlq.data_access.dynamo_connection import ConnectConfigDao, ConnectConfigEntity
 from nlq.data_access.database import RelationDatabase
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 
 class ConnectionManagement:

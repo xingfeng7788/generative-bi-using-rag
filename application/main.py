@@ -6,9 +6,9 @@ from api.main import router
 from api.chart import router as dlset_router
 from fastapi.middleware.cors import CORSMiddleware
 from api import service
-from api.schemas import Option, Message
-import base64
+from api.schemas import Option
 from utils.validate import validate_token
+import urllib.parse
 
 app = FastAPI(title='GenBI')
 
@@ -38,8 +38,8 @@ async def add_process_time_header(request: Request, call_next):
             return Response(status_code=status.HTTP_401_UNAUTHORIZED)
         else:
             response = await call_next(request)
-            response.headers["X-User-Id"] = base64.b64encode(res['user_id'].encode('utf-8')).decode('utf-8')
-            response.headers["X-User-Name"] = base64.b64encode(res['user_name'].encode('utf-8')).decode('utf-8')
+            response.headers["X-User-Id"] = urllib.parse.quote(res['user_id'].encode())
+            response.headers["X-User-Name"] = urllib.parse.quote(res['user_name'].encode())
             return response
     else:
         return Response(status_code=status.HTTP_401_UNAUTHORIZED)

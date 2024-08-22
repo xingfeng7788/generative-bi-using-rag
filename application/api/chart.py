@@ -4,18 +4,21 @@
 # @Author    : dingtianlu
 # @Function  :
 import json
-import logging
 import traceback
 from typing import Optional
 from dotenv import load_dotenv
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status, Depends, Cookie, HTTPException
 from fastapi.responses import StreamingResponse
-from api.dlset_service import dlset_ask_websocket, dlset_ask_stream
+from api.dlset_service import dlset_ask_websocket
+from api.dlset_service_stream import dlset_ask_stream
 from api.enum import ContentEnum
 from api.schemas import DlsetQuestion
+from nlq.core.graph import GraphWorkflow
+from utils.public_utils import response_websocket
 from utils.validate import validate_token, get_current_user
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 router = APIRouter(prefix="/dlset", tags=["superset"])
 load_dotenv()
 
@@ -30,12 +33,13 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
 
     await websocket.accept()
     try:
-        while True:
-            data = await websocket.receive_text()
+        async for data in websocket.iter_text():
             question_json = json.loads(data)
-            question = DlsetQuestion(**question_json)
-            user_id = question.user_id
-            session_id = question.session_id
+            # question = DlsetQuestion(**question_json)
+            # user_id = question.user_id
+            # session_id = question.session_id
+            user_id = question_json['user_id']
+            session_id = question_json['session_id']
             try:
                 jwt_token = question_json.get('token', None)
                 answer = {}
@@ -47,11 +51,20 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
                         await response_websocket(websocket=websocket, session_id=session_id, content=answer,
                                                  content_type=ContentEnum.END, user_id=user_id)
                     else:
-                        ask_result = await dlset_ask_websocket(websocket, question)
-                        logger.info(ask_result)
-                        answer = ask_result.dict()
-                        await response_websocket(websocket=websocket, session_id=session_id, content=answer,
-                                                 content_type=ContentEnum.END, user_id=user_id)
+                        # ask_result = await dlset_ask_websocket(websocket, question)
+                        # logger.info(ask_result)
+                        # answer = ask_result.dict()
+                        # await response_websocket(websocket=websocket, session_id=session_id, content=answer,
+                        #                          content_type=ContentEnum.END, user_id=user_id)
+                        app = GraphWorkflow(graph_type="JSON")
+                        async for info in app.astream_event_run(question_json):
+                            answer_res = json.loads(info)
+                            if "status" not in answer_res['content'].keys():
+                                answer_res['X-Status-Code'] = 200
+                                await websocket.send_text(json.dumps(answer_res, ensure_ascii=False))
+                            else:
+                                await websocket.send_text(info)
+                        pass
                 else:
                     answer['X-Status-Code'] = status.HTTP_401_UNAUTHORIZED
                     await response_websocket(websocket=websocket, session_id=session_id, content=answer,
@@ -64,26 +77,6 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
                                          content_type=ContentEnum.EXCEPTION, user_id=user_id)
     except WebSocketDisconnect:
         logger.info(f"{websocket.client.host} disconnected.")
-
-
-async def response_websocket(websocket: WebSocket, session_id: str, content,
-                             content_type: ContentEnum = ContentEnum.COMMON, status: str = "-1", user_id: str = "admin"):
-    if content_type == ContentEnum.STATE:
-        content_json = {
-            "text": content,
-            "status": status
-        }
-        content = content_json
-
-    content_obj = {
-        "session_id": session_id,
-        "user_id": user_id,
-        "content_type": content_type.value,
-        "content": content,
-    }
-    logger.info(content_obj)
-    final_content = json.dumps(content_obj)
-    await websocket.send_text(final_content)
 
 
 @router.post("/stream")

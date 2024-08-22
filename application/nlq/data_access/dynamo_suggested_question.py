@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
 from utils.prompt import SUGGESTED_QUESTION_PROMPT_CLAUDE3
 import boto3
-import logging
 import os
 from botocore.exceptions import ClientError
 from utils.constant import ACTIVE_PROMPT_NAME, DEFAULT_PROMPT_NAME
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 PROFILE_QUESTION_TABLE_NAME = os.getenv("DYNAMODB_SUGGESTED_QUESTION_TABLE_NAME", "NlqSuggestedQuestion")
 
 class SuggestedQuestionEntity:

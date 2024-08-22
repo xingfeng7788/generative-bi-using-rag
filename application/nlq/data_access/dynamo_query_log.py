@@ -1,11 +1,12 @@
-import logging
+
 import os
 
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 # DynamoDB table name
 QUERY_LOG_TABLE_NAME = os.getenv("DYNAMODB_QUERY_LOG_TABLE_NAME", "NlqQueryLogging")

@@ -1,11 +1,11 @@
 import boto3
 from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
-import logging
 from utils.llm import create_vector_embedding_with_bedrock, create_vector_embedding_with_sagemaker
 from utils.env_var import opensearch_info, SAGEMAKER_ENDPOINT_EMBEDDING, AOS_INDEX_NER
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 
 def get_opensearch_cluster_client():
@@ -160,7 +160,7 @@ def check_field_exists(opensearch_client, index_name, field_name):
     return False
 
 
-def get_retrieve_opensearch(opensearch_info, query, search_type, selected_profile, top_k, score_threshold=0.7,
+def get_retrieve_opensearch(query, search_type, selected_profile, top_k, score_threshold=0.7,
                             sample_type=None):
     if search_type == "query":
         index_name = opensearch_info['sql_index']

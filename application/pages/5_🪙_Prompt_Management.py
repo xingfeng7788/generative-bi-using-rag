@@ -1,11 +1,11 @@
 import streamlit as st
 from dotenv import load_dotenv
-import logging
 from nlq.business.profile import ProfileManagement
 from utils.navigation import make_sidebar
 from utils.prompts.check_prompt import check_prompt_syntax, find_missing_prompt_syntax
 
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+logger = getLogger()
 
 
 def main():

@@ -1,25 +1,25 @@
+import io
 import json
 import traceback
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status, HTTPException, Cookie
-import logging
+from fastapi.responses import Response
 
 from nlq.business.log_store import LogManagement
 from nlq.business.profile import ProfileManagement
+from nlq.core.graph import GraphWorkflow
+from utils.logging import getLogger
+from utils.public_utils import response_websocket
 from utils.question import get_question_examples
 from utils.validate import validate_token, get_current_user
 from .enum import ContentEnum
-from .schemas import Question, Answer, Option, CustomQuestion, FeedBackInput, HistoryRequest, Message, HistoryMessage, \
-    DlsetMessage, DlsetHistoryMessage, HistorySessionRequest
+from .schemas import Question, Answer, Option, CustomQuestion, FeedBackInput, HistoryRequest, Message, HistoryMessage, HistorySessionRequest
 from . import service
 from nlq.business.nlq_chain import NLQChain
 from dotenv import load_dotenv
-import base64
 
-from .service import ask_websocket
-
-logger = logging.getLogger(__name__)
+logger = getLogger()
 router = APIRouter(prefix="/qa", tags=["qa"])
 load_dotenv()
 
@@ -37,9 +37,9 @@ def get_custom_question(data_profile: str):
     return custom_question
 
 
-@router.post("/ask", response_model=Answer)
-def ask(question: Question):
-    return service.ask(question)
+# @router.post("/ask", response_model=Answer)
+# def ask(question: Question):
+#     return service.ask(question)
 
 
 @router.post("/get_history_by_user_profile")
@@ -47,7 +47,6 @@ def get_history_by_user_profile(history_request: HistoryRequest):
     user_id = history_request.user_id
     profile_name = history_request.profile_name
     log_type = history_request.log_type
-    user_id = base64.b64decode(user_id).decode('utf-8')
     history_list = LogManagement.get_history(user_id, profile_name, log_type)
     chat_history = format_chat_history(history_list, log_type)
     return chat_history
@@ -65,19 +64,12 @@ def format_chat_history(history_list, log_type):
                 "title": query
             }
         log_info = item['log_info']
-        if log_type == 'superset':
-            human_message = DlsetMessage(type="human", content=query)
-            bot_message = DlsetMessage(type="AI", content=json.loads(log_info))
-        else:
-            human_message = Message(type="human", content=query)
-            bot_message = Message(type="AI", content=json.loads(log_info))
+        human_message = Message(type="human", content=query)
+        bot_message = Message(type="AI", content=json.loads(log_info))
         chat_history_session[session_id]['history'].append(human_message)
         chat_history_session[session_id]['history'].append(bot_message)
     for key, value in chat_history_session.items():
-        if log_type == 'superset':
-            each_session_history = DlsetHistoryMessage(session_id=key, messages=value['history'], title=value['title'])
-        else:
-            each_session_history = HistoryMessage(session_id=key, messages=value['history'], title=value['title'])
+        each_session_history = HistoryMessage(session_id=key, messages=value['history'], title=value['title'])
         chat_history.append(each_session_history)
     return chat_history
 
@@ -99,13 +91,19 @@ def user_feedback(input_data: FeedBackInput):
 
 @router.post("/get_sessions")
 def get_sessions(history_request: HistoryRequest):
-    user_id = base64.b64decode(history_request.user_id).decode('utf-8')
-    return LogManagement.get_all_sessions(user_id, history_request.profile_name, history_request.log_type)
+    return LogManagement.get_all_sessions(history_request.user_id, history_request.profile_name, history_request.log_type)
+
+
+@router.get("/get_workflow_image")
+async def get_workflow_image():
+    app = GraphWorkflow()
+    img = await app.get_graph_image()
+    return Response(content=img, media_type="image/jpeg")
 
 
 @router.post("/get_history_by_session")
 def get_history_by_session(history_request: HistorySessionRequest):
-    user_id = base64.b64decode(history_request.user_id).decode('utf-8')
+    user_id = history_request.user_id
     history_list = LogManagement.get_all_history_by_session(profile_name=history_request.profile_name, user_id=user_id,
                                                             session_id=history_request.session_id,
                                                             size=1000, log_type=history_request.log_type)
@@ -120,12 +118,14 @@ def get_history_by_session(history_request: HistorySessionRequest):
     else:
         return empty_history
 
+
 @router.post("/delete_history_by_session")
 def delete_history_by_session(history_request: HistorySessionRequest):
-    user_id = base64.b64decode(history_request.user_id).decode('utf-8')
+    user_id = history_request.user_id
     profile_name = history_request.profile_name
     session_id = history_request.session_id
     return LogManagement.delete_history_by_session(user_id, profile_name, session_id, log_type=history_request.log_type)
+
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str] = Cookie(None)):
@@ -137,18 +137,17 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
         return
     await websocket.accept()
     try:
-        while True:
-            data = await websocket.receive_text()
+        async for data in websocket.iter_text():
             question_json = json.loads(data)
             question = Question(**question_json)
             session_id = question.session_id
-            user_id = base64.b64decode(question.user_id).decode('utf-8')
+            user_id = question.user_id
             try:
                 jwt_token = question_json.get('dlunifiedtoken', None)
                 if jwt_token:
                     del question_json['dlunifiedtoken']
 
-                print('---JWT TOKEN---', jwt_token)
+                logger.info('---JWT TOKEN---', jwt_token)
 
                 if jwt_token:
                     res = validate_token(jwt_token)
@@ -158,14 +157,16 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
                         await response_websocket(websocket=websocket, session_id=session_id, content=answer,
                                                  content_type=ContentEnum.END, user_id=user_id)
                     else:
-                        ask_result = await ask_websocket(websocket, question)
-                        logger.info(ask_result)
-                        answer = ask_result.dict()
-                        answer['X-Status-Code'] = 200
-                        answer['X-User-Id'] = base64.b64encode(res['user_id'].encode('utf-8')).decode('utf-8')
-                        answer['X-User-Name'] = base64.b64encode(res['user_name'].encode('utf-8')).decode('utf-8')
-                        await response_websocket(websocket=websocket, session_id=session_id, content=answer,
-                                                 content_type=ContentEnum.END, user_id=user_id)
+                        app = GraphWorkflow()
+                        async for info in app.astream_event_run(question_json):
+                            answer_res = json.loads(info)
+                            if "status" not in answer_res['content'].keys():
+                                answer_res['X-Status-Code'] = 200
+                                answer_res['X-User-Id'] = res['user_id']
+                                answer_res['X-User-Name'] = res['user_name']
+                                await websocket.send_text(json.dumps(answer_res, ensure_ascii=False))
+                            else:
+                                await websocket.send_text(info)
                 else:
                     answer = {}
                     answer['X-Status-Code'] = status.HTTP_401_UNAUTHORIZED
@@ -178,62 +179,3 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
                                          content_type=ContentEnum.EXCEPTION, user_id=user_id)
     except WebSocketDisconnect:
         logger.info(f"{websocket.client.host} disconnected.")
-
-
-async def response_sagemaker_sql(websocket: WebSocket, session_id: str, response: dict, current_nlq_chain: NLQChain):
-    result_pieces = []
-    for event in response['Body']:
-        current_body = event["PayloadPart"]["Bytes"].decode('utf8')
-        result_pieces.append(current_body)
-        await response_websocket(websocket, session_id, current_body)
-    # TODO Must modify response
-    sql_response = '''<query>SELECT i.`item_id`, i.`product_description`, COUNT(it.`event_type`) AS total_purchases
-FROM `items` i
-JOIN `interactions` it ON i.`item_id` = it.`item_id`
-WHERE it.`event_type` = 'purchase'
-GROUP BY i.`item_id`, i.`product_description`
-ORDER BY total_purchases DESC
-LIMIT 10;</query>'''
-    current_nlq_chain.set_generated_sql_response(sql_response)
-
-
-async def response_sagemaker_explain(websocket: WebSocket, session_id: str, response: dict):
-    for event in response['Body']:
-        current_body = event["PayloadPart"]["Bytes"].decode('utf8')
-        current_content = json.loads(current_body)
-        await response_websocket(websocket, session_id, current_content.get("outputs"))
-
-
-async def response_bedrock(websocket: WebSocket, session_id: str, response: dict, current_nlq_chain: NLQChain):
-    result_pieces = []
-    for event in response['body']:
-        current_body = event["chunk"]["bytes"].decode('utf8')
-        current_content = json.loads(current_body)
-        if current_content.get("type") == "content_block_delta":
-            current_text = current_content.get("delta").get("text")
-            result_pieces.append(current_text)
-            await response_websocket(websocket, session_id, current_text)
-        elif current_content.get("type") == "content_block_stop":
-            break
-    current_nlq_chain.set_generated_sql_response(''.join(result_pieces))
-
-
-async def response_websocket(websocket: WebSocket, session_id: str, content,
-                             content_type: ContentEnum = ContentEnum.COMMON, status: str = "-1",
-                             user_id: str = "admin"):
-    if content_type == ContentEnum.STATE:
-        content_json = {
-            "text": content,
-            "status": status
-        }
-        content = content_json
-
-    content_obj = {
-        "session_id": session_id,
-        "user_id": user_id,
-        "content_type": content_type.value,
-        "content": content,
-    }
-    logger.info(content_obj)
-    final_content = json.dumps(content_obj)
-    await websocket.send_text(final_content)

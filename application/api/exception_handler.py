@@ -4,8 +4,10 @@ from fastapi import status, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from .enum import ErrorEnum
 import traceback
-import logging
-logger = logging.getLogger(__name__)
+from utils.logging import getLogger
+
+logger = getLogger()
+
 
 def response_error(code: int, message: str, status_code: int = status.HTTP_400_BAD_REQUEST) -> Response:
     headers = {}
@@ -22,7 +24,8 @@ def response_error(code: int, message: str, status_code: int = status.HTTP_400_B
 def biz_exception(app: FastAPI):
     # customize request validation error
     @app.exception_handler(RequestValidationError)
-    async def val_exception_handler(req: Request, rve: RequestValidationError, code: int = status.HTTP_422_UNPROCESSABLE_ENTITY):
+    async def val_exception_handler(req: Request, rve: RequestValidationError,
+                                    code: int = status.HTTP_422_UNPROCESSABLE_ENTITY):
         lst = []
         for error in rve.errors():
             lst.append('{}=>{}'.format('.'.join(error['loc']), error['msg']))
@@ -47,7 +50,6 @@ class BizException(Exception):
     def __init__(self, error_message: ErrorEnum):
         self.code = error_message.get_code()
         self.message = error_message.get_message()
-
 
     def __msg__(self):
         return self.message

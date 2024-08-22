@@ -10,8 +10,6 @@ PyMySQL==1.1.1
 python-dotenv~=1.0.0
 plotly~=5.18.0
 cryptography==42.0.4
-langchain~=0.1.11
-langchain-core~=0.1.30
 sqlparse~=0.4.2
 pandas==2.0.3
 openpyxl
@@ -20,3 +18,5 @@ openai==1.35.13
 clickhouse-sqlalchemy==0.2.6
 retrying==1.3.4
 PyJWT==2.8.0
+langgraph==0.2.4
+langchain==0.2.14

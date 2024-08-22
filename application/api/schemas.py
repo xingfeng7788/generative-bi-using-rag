@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, Union, Dict, List, TypedDict
 from pydantic import BaseModel
 
 
@@ -25,14 +25,14 @@ class Question(BaseModel):
 class HistoryRequest(BaseModel):
     user_id: str
     profile_name: str
-    log_type: str = "chat_history"
+    log_type: str = "SQL"
 
 
 class HistorySessionRequest(BaseModel):
     session_id: str
     profile_name: str
     user_id: str
-    log_type: str = "chat_history"
+    log_type: str = "SQL"
 
 
 class DlsetQuestion(BaseModel):
@@ -130,6 +130,7 @@ class Answer(BaseModel):
     query_intent: str
     knowledge_search_result: KnowledgeSearchResult
     sql_search_result: SQLSearchResult
+    json_search_result: JSONSearchResult
     agent_search_result: AgentSearchResult
     ask_rewrite_result: AskReplayResult
     suggested_question: list[str]
@@ -168,3 +169,51 @@ class DlsetHistoryMessage(BaseModel):
 
 class ChatHistory(BaseModel):
     messages: list[HistoryMessage]
+
+
+class GraphState(TypedDict):
+    # 入参
+    query: str
+    bedrock_model_id: str
+    use_rag_flag: bool
+    visualize_results_flag: bool
+    intent_ner_recognition_flag: bool
+    agent_cot_flag: bool
+    profile_name: str
+    explain_gen_process_flag: bool
+    gen_suggested_question_flag: bool
+    answer_with_insights: bool
+    top_k: float
+    top_p: float
+    max_tokens: int
+    temperature: float
+    context_window: int
+    session_id: str
+    user_id: str
+    is_debug: bool
+    # 中间过程
+    database_profile: Dict
+    entity_slots: List[str]
+    entity_slot_retrieves: List[str]
+    qa_retrieves: List[str]
+    agent_cot_retrieves: List[str]
+    agent_cot_task: Dict
+    cot_execute_query_info: Dict
+    filter_deep_dive_sql_result: List[Dict]
+    agent_sql_search_result: List
+
+    query_rewrite: str
+    query_rewrite_intent: str
+    query_intent: str
+    sql: str
+    answer: Answer
+    current_state: str
+    execute_query_info: List[Dict]
+    additional_info: str
+    suggested_question_list: List[str]
+    insight_result: str
+    sql_gen_process: str
+    # 数据集ID
+    table_id: int
+    graph_type: str
+    dataset_schema: str
