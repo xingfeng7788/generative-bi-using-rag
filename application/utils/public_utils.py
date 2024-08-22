@@ -55,6 +55,9 @@ async def response_websocket(websocket: WebSocket, session_id: str, content,
 
 async def response_stream_json(session_id: str, content,
                                content_type: ContentEnum = ContentEnum.COMMON, status: str = "-1",
-                               user_id: str = "admin"):
+                               user_id: str = "admin", streamed_json: bool = False):
     final_content = await deal_response(content, content_type, session_id, status, user_id)
-    yield final_content
+    if streamed_json:
+        yield f"data: {final_content}\n\n"
+    else:
+        yield final_content

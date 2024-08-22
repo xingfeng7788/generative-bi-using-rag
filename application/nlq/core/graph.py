@@ -651,7 +651,7 @@ class GraphWorkflow:
         state = self.init_state(state)
         return self.app.invoke(state)
 
-    async def astream_event_run(self, state):
+    async def astream_event_run(self, state, streamed_json=False):
         state = self.init_state(state)
         async for event in self.app.astream_events(state, config={"configurable": {"thread_id": 1}}, version="v2"):
             # 1. 记录on_chain_start、on_chain_end 事件
@@ -666,14 +666,14 @@ class GraphWorkflow:
                                                            event['data']['input']['answer'].dict(),
                                                            ContentEnum.END,
                                                            "-1",
-                                                           state['user_id']):
+                                                           state['user_id'], streamed_json):
                         yield data
                         break
                 else:
                     if not event['name'].startswith("decide_"):
                         async for data in response_stream_json(state['session_id'], event['name'], ContentEnum.STATE,
                                                                event["event"].split("_")[-1],
-                                                               state['user_id']):
+                                                               state['user_id'], streamed_json):
                             yield data
 
     async def get_graph_image(self):

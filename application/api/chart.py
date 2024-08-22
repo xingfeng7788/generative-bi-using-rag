@@ -81,4 +81,6 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
 
 @router.post("/stream")
 async def superset_stream(question: DlsetQuestion):
-    return StreamingResponse(dlset_ask_stream(question), media_type="text/event-stream")
+    question_json = question.dict()
+    app = GraphWorkflow(graph_type="JSON")
+    return StreamingResponse(app.astream_event_run(state=question_json, streamed_json=True), media_type="text/event-stream")
