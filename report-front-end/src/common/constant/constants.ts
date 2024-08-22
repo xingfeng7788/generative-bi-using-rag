@@ -1,4 +1,4 @@
-export const CHATBOT_NAME = "GenBI Chatbot";
+export const CHATBOT_NAME = "欣智GBI";
 
 export const DEFAULT_USER_INFO = {
   userId: "",
