@@ -134,6 +134,16 @@ class Answer(BaseModel):
     agent_search_result: AgentSearchResult
     ask_rewrite_result: AskReplayResult
     suggested_question: list[str]
+    # 增加
+    context_state: str = "initial"
+    ask_entity_select: Dict[str, List[Dict[str, str]]] = {}
+    entity_slots: List[str] = []
+    entity_slot_retrieves: List[str] = []
+    qa_retrieves: List[str] = []
+    # {"实体": [{"table_name": "表名", "column_name": "字段名", "value": "字段数据库真实值"}]}
+    # cot 信息
+    agent_cot_retrieves: List[str] = []
+    agent_cot_task: Dict = {}
 
 
 class SupersetAnswer(BaseModel):
@@ -207,7 +217,7 @@ class GraphState(TypedDict):
     query_intent: str
     sql: str
     answer: Answer
-    current_state: str
+    context_state: str
     execute_query_info: List[Dict]
     additional_info: str
     suggested_question_list: List[str]
@@ -217,3 +227,4 @@ class GraphState(TypedDict):
     table_id: int
     graph_type: str
     dataset_schema: str
+    ask_entity_select: Dict

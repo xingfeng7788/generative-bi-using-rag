@@ -63,7 +63,6 @@ def handle_intent_recognition(state):
 
 
 def handle_knowledge_search(state):
-    selected_profile = state['profile_name']
     database_profile = state['database_profile']
     question_example = deal_comments(database_profile['comments'])
     response = knowledge_search(search_box=state['query'],
@@ -79,14 +78,6 @@ def handle_knowledge_search(state):
                     knowledge_search_result=knowledge_search_result,
                     sql_search_result=sql_search_result, agent_search_result=agent_search_response,
                     suggested_question=state['suggested_question_list'], ask_rewrite_result=ask_result, json_search_result=json_search_result)
-    # update_share_data(session_id, search_box, answer)
-    knowledge_answer_info = change_class_to_str(answer)
-    LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
-                                      profile_name=selected_profile, sql="", query=state['query'],
-                                      intent="knowledge_search",
-                                      log_info=knowledge_answer_info,
-                                      log_type=state['graph_type'],
-                                      time_str=current_time)
     state['answer'] = answer
     return state
 
@@ -99,12 +90,8 @@ def handle_reject_intent(state):
                     agent_search_result=agent_search_response,
                     suggested_question=[],
                     ask_rewrite_result=ask_result,
-                    json_search_result=json_search_result)
-    reject_answer_info = change_class_to_str(answer)
-    LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
-                                      profile_name=state['profile_name'], sql="", query=state['query'],
-                                      intent="reject_search", log_info=reject_answer_info, time_str=current_time,
-                                      log_type=state['graph_type'])
+                    json_search_result=json_search_result
+                    )
     state['answer'] = answer
     return state
 
@@ -176,6 +163,7 @@ def handle_cot_sql_execute_query(state):
     database_profile = state['database_profile']
     filter_deep_dive_sql_result = []
     agent_sql_search_result = []
+    sql_list = []
     for task, task_info in state['agent_cot_task'].items():
         sql = state['cot_execute_query_info'][task_info]["sql"]
         each_task_res = get_sql_result_tool(database_profile, sql)
@@ -207,11 +195,13 @@ def handle_cot_sql_execute_query(state):
             each_task_sql_search_result = TaskSQLSearchResult(sub_task_query=task_info,
                                                               sql_search_result=sub_task_sql_result)
             agent_sql_search_result.append(each_task_sql_search_result)
+            sql_list.append(sql)
 
         else:
             logger.warning(task_info + "The SQL error Info: ")
     state["filter_deep_dive_sql_result"] = filter_deep_dive_sql_result
     state["agent_sql_search_result"] = agent_sql_search_result
+    state['sql'] = json.dumps(sql_list, ensure_ascii=False)
     return state
 
 
@@ -243,11 +233,30 @@ def handle_cot_data_visualization(state):
 
 def handle_entity_retrieval(state):
     entity_slot_retrieves = []
+    entity_name_set = set()
     for each_entity in state['entity_slots']:
         entity_retrieve = get_retrieve_opensearch(each_entity, "ner", state['profile_name'], 1, 0.7)
         if len(entity_retrieve) > 0:
-            entity_slot_retrieves.extend(entity_retrieve)
+            for each_entity_retrieve in entity_retrieve:
+                if each_entity_retrieve['_source']['entity'] not in entity_name_set:
+                    entity_name_set.add(each_entity_retrieve['_source']['entity'])
+                    entity_slot_retrieves.append(each_entity_retrieve)
     state['entity_slot_retrieves'] = entity_slot_retrieves
+    same_name_entity = {}
+    for each_entity in entity_slot_retrieves:
+        if each_entity['_source']['entity_count'] > 1 and each_entity['_score'] > 0.98:
+            same_name_entity[each_entity['_source']['entity']] = each_entity['_source']['entity_table_info']
+    if len(same_name_entity) > 0:
+        # 如果正常流程就会触发反问，反问
+        if state['context_state'] != "ask_dim_in_reply":
+            state['context_state'] = "ask_dim_in_reply"
+            state['ask_entity_select'] = same_name_entity
+            answer = Answer(query=state['query'], query_intent="normal_search",
+                            knowledge_search_result=knowledge_search_result,
+                            sql_search_result=sql_search_result, agent_search_result=agent_search_response,
+                            suggested_question=state['suggested_question_list'], ask_rewrite_result=ask_result
+                            , json_search_result=json_search_result)
+            state['answer'] = answer
     return state
 
 
@@ -340,14 +349,7 @@ def handle_execute_json_generation(state):
                     sql_search_result=sql_search_result, agent_search_result=agent_search_response,
                     suggested_question=state['suggested_question_list'], ask_rewrite_result=ask_result
                     , json_search_result=json_search_result)
-    answer_info = change_class_to_str(answer)
-    LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
-                                      profile_name=state['profile_name'], sql=json_search_result.json,
-                                      query=state['query'],
-                                      intent="normal_search",
-                                      log_info=answer_info,
-                                      log_type=state['graph_type'],
-                                      time_str=current_time)
+    state['sql'] = json_str
     state['answer'] = answer
     return state
 
@@ -396,14 +398,6 @@ def handle_analyze_data(state):
                     suggested_question=state['suggested_question_list'], ask_rewrite_result=ask_result,
                     json_search_result=json_search_result
                     )
-    intent_answer_info = change_class_to_str(answer)
-    LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
-                                      profile_name=state['profile_name'], sql=sql_search_result.sql,
-                                      query=state['query'],
-                                      intent="normal_search",
-                                      log_info=intent_answer_info,
-                                      log_type=state['graph_type'],
-                                      time_str=current_time)
     state['answer'] = answer
     return state
 
@@ -462,41 +456,28 @@ def get_profile_info(state):
     return state
 
 
-def handle_ask_in_rely(state):
+def handle_ask_in_reply(state):
     answer = Answer(query=state['query'], query_rewrite=state['query_rewrite'], query_intent="ask_in_reply",
                     knowledge_search_result=knowledge_search_result,
                     sql_search_result=sql_search_result, agent_search_result=agent_search_response,
                     suggested_question=[], ask_rewrite_result=ask_result, json_search_result=json_search_result)
-
-    # update_share_data(session_id, search_box, answer)
-    ask_answer_info = change_class_to_str(answer)
-    LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
-                                      profile_name=state['profile_name'], sql="", query=state['query'],
-                                      intent="ask_in_reply",
-                                      log_info=ask_answer_info,
-                                      log_type=state['graph_type'],
-                                      time_str=current_time)
     state['answer'] = answer
     return state
 
 
 def decide_choose_next_node(state):
     # initial 正常流程, ask_in_reply: 缺少时间粒度反问, ask_dim_in_reply: 缺少维度信息反问
-    if state['current_state'] == 'initial':
+    if state['context_state'] == 'initial':
         return "normal_process"
-    elif state['current_state'] == 'ask_in_reply':
-        return "ask_in_rely"
-    elif state['current_state'] == 'ask_dim_in_reply':
+    elif state['context_state'] == 'ask_in_reply':
+        return "ask_in_reply"
+    elif state['context_state'] == 'ask_dim_in_reply':
         return "ask_dim_in_reply"
     else:
         raise Exception("Invalid state")
 
 
 def deal_ask_in_reply(state):
-    pass
-
-
-def deal_ask_dim_in_reply(state):
     pass
 
 
@@ -536,6 +517,20 @@ def decide_sql_json_next_node(state):
 
 
 def handle_output_format_answer(state):
+    state['answer'].context_state = state['context_state']
+    state['answer'].ask_entity_select = state['ask_entity_select']
+    state['answer'].entity_slots = state['entity_slots']
+    state['answer'].entity_slot_retrieves = state['entity_slot_retrieves']
+    state['answer'].qa_retrieves = state['qa_retrieves']
+    state['answer'].agent_cot_retrieves = state['agent_cot_retrieves']
+    state['answer'].agent_cot_task = state['agent_cot_task']
+    answer_info = change_class_to_str(state['answer'])
+    LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
+                                      profile_name=state['profile_name'], sql=state["sql"], query=state['query'],
+                                      intent=state['query_intent'],
+                                      log_info=answer_info,
+                                      log_type=state['graph_type'],
+                                      time_str=current_time)
     return state
 
 
@@ -560,10 +555,10 @@ class GraphWorkflow:
             ("search_knowledge", handle_knowledge_search),
             ("check_suggested_questions_generated", handle_suggested_question_list),
             ("answer_insights", handle_answer_with_insights),
-            ("trigger_ask_in_reply", handle_ask_in_rely),
-            ("deal_ask_in_reply", deal_ask_in_reply),
+            ("trigger_ask_in_reply", handle_ask_in_reply),
+            # ("deal_ask_in_reply", deal_ask_in_reply),
             ("response_format_answer", handle_output_format_answer),
-            ("deal_ask_dim_in_reply", deal_ask_dim_in_reply),
+            # ("deal_ask_dim_in_reply", deal_ask_dim_in_reply),
             ("get_core_metadata", get_profile_info),
             ("feedback_query_or_rewrite", handle_feedback_query_or_rewrite),
             # cot
@@ -596,7 +591,7 @@ class GraphWorkflow:
             ('search_knowledge', "response_format_answer"),
             # ('agent_task', "response_format_answer"),
             ('analyze_data', "response_format_answer"),
-            ("entity_retrieval", "qa_retrieval"),
+            # ("entity_retrieval", "qa_retrieval"),
             ('search_dataset_info', 'query_generation'),
             ('query_generation', 'response_format_answer'),
             ("sql_generation", "execute_query"),
@@ -618,8 +613,8 @@ class GraphWorkflow:
         conditional_edges = [
             ("get_core_metadata", decide_choose_next_node, {
                 "normal_process": "feedback_query_or_rewrite",
-                "ask_in_rely": "deal_ask_in_reply",
-                "ask_dim_in_reply": "deal_ask_dim_in_reply",
+                # "ask_in_reply": "deal_ask_in_reply",
+                "ask_dim_in_reply": "qa_retrieval",
             }),
             ("feedback_query_or_rewrite", decide_query_rewrite_next_node, {
                 "not_ask_in_reply": "intent_recognition",
@@ -633,6 +628,10 @@ class GraphWorkflow:
                 "agent_search": "agent_retrieval",
                 "knowledge_search": "search_knowledge",
                 "normal_search": "entity_retrieval",
+            }),
+            ("entity_retrieval", decide_choose_next_node, {
+                "normal_process": "qa_retrieval",
+                "ask_dim_in_reply": "response_format_answer",
             }),
             ("qa_retrieval", decide_sql_json_next_node, {
                 "sql": "sql_generation",
@@ -721,7 +720,7 @@ class GraphWorkflow:
             "query_intent": "",
             "sql": "-1",
             "answer": None,
-            "current_state": "initial",
+            "context_state": "initial",
             "execute_query_info": [],
             "additional_info": "",
             "suggested_question_list": [],
@@ -735,5 +734,6 @@ class GraphWorkflow:
             "is_debug": False,
             "table_id": None,
             "graph_type": self.type,
-            "dataset_schema": ""
+            "dataset_schema": "",
+            "ask_entity_select": {}
         }
