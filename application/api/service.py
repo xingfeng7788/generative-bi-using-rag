@@ -245,7 +245,7 @@ def ask(question: Question) -> Answer:
                                                 selected_profile, use_rag_flag, agent_cot_task_result)
 
     if gen_suggested_question_flag and (search_intent_flag or agent_intent_flag):
-        active_prompt = sqm.get_prompt_by_name(ACTIVE_PROMPT_NAME).prompt
+        # active_prompt = sqm.get_prompt_by_name(ACTIVE_PROMPT_NAME).prompt
         generated_sq = generate_suggested_question(prompt_map, search_box, model_id=model_type)
         split_strings = generated_sq.split("[generate]")
         generate_suggested_question_list = [s.strip() for s in split_strings if s.strip()]
@@ -543,7 +543,7 @@ async def ask_websocket(websocket: WebSocket, question: Question):
                                                 selected_profile, use_rag_flag, agent_cot_task_result)
 
     if gen_suggested_question_flag and (search_intent_flag or agent_intent_flag):
-        active_prompt = sqm.get_prompt_by_name(ACTIVE_PROMPT_NAME).prompt
+        # active_prompt = sqm.get_prompt_by_name(ACTIVE_PROMPT_NAME).prompt
         generated_sq = generate_suggested_question(prompt_map, query_rewrite, model_id=model_type)
         split_strings = generated_sq.split("[generate]")
         generate_suggested_question_list = [s.strip() for s in split_strings if s.strip()]
