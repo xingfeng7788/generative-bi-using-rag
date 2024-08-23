@@ -1,4 +1,4 @@
-from typing import Any, Union, Dict, List, TypedDict
+from typing import Any, Union, Dict, List, TypedDict, Optional
 from pydantic import BaseModel
 
 
@@ -20,6 +20,8 @@ class Question(BaseModel):
     context_window: int = 5
     session_id: str = "-1"
     user_id: str = "admin"
+    entity_slots: List[str] = []
+    entity_slot_retrieves: List = []
 
 
 class HistoryRequest(BaseModel):
@@ -135,15 +137,15 @@ class Answer(BaseModel):
     ask_rewrite_result: AskReplayResult
     suggested_question: list[str]
     # 增加
-    context_state: str = "initial"
-    ask_entity_select: Dict[str, List[Dict[str, str]]] = {}
-    entity_slots: List[str] = []
-    entity_slot_retrieves: List[str] = []
-    qa_retrieves: List[str] = []
+    context_state: Optional[str] = "initial"
+    ask_entity_select: Optional[Dict[str, List[Dict[str, str]]]] = {}
+    entity_slots: Optional[List[str]] = []
+    entity_slot_retrieves: Optional[List] = []
+    qa_retrieves: Optional[List] = []
     # {"实体": [{"table_name": "表名", "column_name": "字段名", "value": "字段数据库真实值"}]}
     # cot 信息
-    agent_cot_retrieves: List[str] = []
-    agent_cot_task: Dict = {}
+    agent_cot_retrieves: Optional[List[str]] = []
+    agent_cot_task: Optional[Dict] = {}
 
 
 class SupersetAnswer(BaseModel):
@@ -204,12 +206,12 @@ class GraphState(TypedDict):
     # 中间过程
     database_profile: Dict
     entity_slots: List[str]
-    entity_slot_retrieves: List[str]
-    qa_retrieves: List[str]
-    agent_cot_retrieves: List[str]
+    entity_slot_retrieves: List
+    qa_retrieves: List
+    agent_cot_retrieves: List
     agent_cot_task: Dict
     cot_execute_query_info: Dict
-    filter_deep_dive_sql_result: List[Dict]
+    filter_deep_dive_sql_result: List
     agent_sql_search_result: List
 
     query_rewrite: str

@@ -77,7 +77,8 @@ def handle_knowledge_search(state):
                     query_intent="knowledge_search",
                     knowledge_search_result=knowledge_search_result,
                     sql_search_result=sql_search_result, agent_search_result=agent_search_response,
-                    suggested_question=state['suggested_question_list'], ask_rewrite_result=ask_result, json_search_result=json_search_result)
+                    suggested_question=state['suggested_question_list'], ask_rewrite_result=ask_result,
+                    json_search_result=json_search_result)
     state['answer'] = answer
     return state
 
@@ -103,11 +104,8 @@ def handle_agent_retrieval(state):
 
 
 def handle_generate_cot_sub_task(state):
-    query_rewrite = state['query_rewrite']
-    model_type = state['bedrock_model_id']
     database_profile = state['database_profile']
-    prompt_map = database_profile['prompt_map']
-    agent_cot_task_result = get_agent_cot_task(model_type, prompt_map, query_rewrite,
+    agent_cot_task_result = get_agent_cot_task(state['bedrock_model_id'], database_profile['prompt_map'], state['query_rewrite'],
                                                database_profile['tables_info'],
                                                state['agent_cot_retrieves'])
     state['agent_cot_task'] = agent_cot_task_result
@@ -344,11 +342,10 @@ def handle_execute_json_generation(state):
     logger.info(f'{response=}')
     json_str = get_generated_json(response)
     think_process = get_generated_think(response)
-    json_search_result = JSONSearchResult(json=json_str, think_process=think_process)
     answer = Answer(query=state['query'], query_intent="normal_search", knowledge_search_result=knowledge_search_result,
                     sql_search_result=sql_search_result, agent_search_result=agent_search_response,
                     suggested_question=state['suggested_question_list'], ask_rewrite_result=ask_result
-                    , json_search_result=json_search_result)
+                    , json_search_result=JSONSearchResult(json=json_str, think_process=think_process))
     state['sql'] = json_str
     state['answer'] = answer
     return state
@@ -356,10 +353,11 @@ def handle_execute_json_generation(state):
 
 def handle_answer_with_insights(state):
     if state['answer_with_insights']:
-        insight_result = data_analyse_tool(state['bedrock_model_id'], state['database_profile']['prompt_map'],
+        insight_result = data_analyse_tool(state['bedrock_model_id'],
+                                           state['database_profile']['prompt_map'],
                                            state['query_rewrite'],
-                                           state['execute_query_info'][-1]['data'].to_json(orient='records',
-                                                                                           force_ascii=False), "query")
+                                           state['execute_query_info'][-1]['data'].to_json(orient='records', force_ascii=False),
+                                           "query")
         state['insight_result'] = insight_result
     return state
 
@@ -400,13 +398,6 @@ def handle_analyze_data(state):
                     )
     state['answer'] = answer
     return state
-
-
-def decide_is_need_regenerate_sql(state):
-    if not state['execute_query_info'][-1]['success'] and len(state['execute_query_info']) < MAX_EXECUTE_QUERY_NUMBER:
-        return "regenerate_sql"
-    else:
-        return "not_regenerate_sql"
 
 
 def handle_generate_sql_again(state):
@@ -465,6 +456,16 @@ def handle_ask_in_reply(state):
     return state
 
 
+def handle_suggested_question_list(state):
+    if state['gen_suggested_question_flag']:
+        generated_sq = generate_suggested_question(state['database_profile']['prompt_map'], state['query_rewrite'],
+                                                   state['bedrock_model_id'])
+        split_strings = generated_sq.split("[generate]")
+        generate_suggested_question_list = [s.strip() for s in split_strings if s.strip()]
+        state['suggested_question_list'] = generate_suggested_question_list
+    return state
+
+
 def decide_choose_next_node(state):
     # initial 正常流程, ask_in_reply: 缺少时间粒度反问, ask_dim_in_reply: 缺少维度信息反问
     if state['context_state'] == 'initial':
@@ -477,18 +478,11 @@ def decide_choose_next_node(state):
         raise Exception("Invalid state")
 
 
-def deal_ask_in_reply(state):
-    pass
-
-
-def handle_suggested_question_list(state):
-    if state['gen_suggested_question_flag']:
-        generated_sq = generate_suggested_question(state['database_profile']['prompt_map'], state['query_rewrite'],
-                                                   state['bedrock_model_id'])
-        split_strings = generated_sq.split("[generate]")
-        generate_suggested_question_list = [s.strip() for s in split_strings if s.strip()]
-        state['suggested_question_list'] = generate_suggested_question_list
-    return state
+def decide_is_need_regenerate_sql(state):
+    if not state['execute_query_info'][-1]['success'] and len(state['execute_query_info']) < MAX_EXECUTE_QUERY_NUMBER:
+        return "regenerate_sql"
+    else:
+        return "not_regenerate_sql"
 
 
 def decide_intent_recognition_next_node(state):
@@ -524,13 +518,14 @@ def handle_output_format_answer(state):
     state['answer'].qa_retrieves = state['qa_retrieves']
     state['answer'].agent_cot_retrieves = state['agent_cot_retrieves']
     state['answer'].agent_cot_task = state['agent_cot_task']
-    answer_info = change_class_to_str(state['answer'])
-    LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
-                                      profile_name=state['profile_name'], sql=state["sql"], query=state['query'],
-                                      intent=state['query_intent'],
-                                      log_info=answer_info,
-                                      log_type=state['graph_type'],
-                                      time_str=current_time)
+    if state['context_state'] != 'ask_dim_in_reply':
+        answer_info = change_class_to_str(state['answer'])
+        LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
+                                          profile_name=state['profile_name'], sql=state["sql"], query=state['query'],
+                                          intent=state['query_intent'],
+                                          log_info=answer_info,
+                                          log_type=state['graph_type'],
+                                          time_str=current_time)
     return state
 
 
@@ -553,11 +548,11 @@ class GraphWorkflow:
             ("analyze_data", handle_analyze_data),
             ("generate_sql_again", handle_generate_sql_again),
             ("search_knowledge", handle_knowledge_search),
-            ("check_suggested_questions_generated", handle_suggested_question_list),
+            ("suggested_questions_generated", handle_suggested_question_list),
             ("answer_insights", handle_answer_with_insights),
             ("trigger_ask_in_reply", handle_ask_in_reply),
             # ("deal_ask_in_reply", deal_ask_in_reply),
-            ("response_format_answer", handle_output_format_answer),
+            ("end_format_answer", handle_output_format_answer),
             # ("deal_ask_dim_in_reply", deal_ask_dim_in_reply),
             ("get_core_metadata", get_profile_info),
             ("feedback_query_or_rewrite", handle_feedback_query_or_rewrite),
@@ -585,15 +580,15 @@ class GraphWorkflow:
             ('cot_qa_retrieval', "cot_sql_generation"),
             ('cot_sql_generation', "cot_sql_execute_query"),
             ('cot_sql_execute_query', "cot_data_visualization"),
-            ('cot_data_visualization', "response_format_answer"),
-            ('reject_intent', "response_format_answer"),
-            ('trigger_ask_in_reply', "response_format_answer"),
-            ('search_knowledge', "response_format_answer"),
-            # ('agent_task', "response_format_answer"),
-            ('analyze_data', "response_format_answer"),
+            ('cot_data_visualization', "end_format_answer"),
+            ('reject_intent', "end_format_answer"),
+            ('trigger_ask_in_reply', "end_format_answer"),
+            ('search_knowledge', "end_format_answer"),
+            # ('agent_task', "end_format_answer"),
+            ('analyze_data', "end_format_answer"),
             # ("entity_retrieval", "qa_retrieval"),
             ('search_dataset_info', 'query_generation'),
-            ('query_generation', 'response_format_answer'),
+            ('query_generation', 'end_format_answer'),
             ("sql_generation", "execute_query"),
             ("answer_insights", "analyze_data"),
             ("generate_sql_again", "sql_generation"),
@@ -607,7 +602,7 @@ class GraphWorkflow:
         self.add_edges()
         self.add_conditional_edges()
         self.workflow.set_entry_point("get_core_metadata")
-        self.workflow.add_edge("response_format_answer", END)
+        self.workflow.add_edge("end_format_answer", END)
 
     def add_conditional_edges(self):
         conditional_edges = [
@@ -622,16 +617,16 @@ class GraphWorkflow:
             }),
             ("intent_recognition", decide_reject_next_node, {
                 "reject_search": "reject_intent",
-                "not_reject_search": "check_suggested_questions_generated"
+                "not_reject_search": "suggested_questions_generated"
             }),
-            ("check_suggested_questions_generated", decide_intent_recognition_next_node, {
+            ("suggested_questions_generated", decide_intent_recognition_next_node, {
                 "agent_search": "agent_retrieval",
                 "knowledge_search": "search_knowledge",
                 "normal_search": "entity_retrieval",
             }),
             ("entity_retrieval", decide_choose_next_node, {
                 "normal_process": "qa_retrieval",
-                "ask_dim_in_reply": "response_format_answer",
+                "ask_dim_in_reply": "end_format_answer",
             }),
             ("qa_retrieval", decide_sql_json_next_node, {
                 "sql": "sql_generation",
@@ -656,13 +651,13 @@ class GraphWorkflow:
             # 1. 记录on_chain_start、on_chain_end 事件
             # 2. "LangGraph", "__start__" ChannelWrite* 事件不记录
             # 3. decide_ 开头的条件事件不记录
-            # 4. response_format_answer 最终节点输出结果
+            # 4. end_format_answer 最终节点输出结果
             if ((event["event"] in ["on_chain_start", "on_chain_end"]
                  and event['name'] not in ["LangGraph", "__start__"]
                  and not event['name'].startswith("ChannelWrite"))):
-                if event["event"] == "on_chain_end" and event['name'] == "response_format_answer":
+                if event["event"] == "on_chain_end" and event['name'] == "end_format_answer":
                     async for data in response_stream_json(state['session_id'],
-                                                           event['data']['input']['answer'].dict(),
+                                                           event['data']['output']['answer'].dict(),
                                                            ContentEnum.END,
                                                            "-1",
                                                            state['user_id'], streamed_json):

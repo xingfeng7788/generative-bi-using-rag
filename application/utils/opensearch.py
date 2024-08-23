@@ -185,6 +185,7 @@ def get_retrieve_opensearch(query, search_type, selected_profile, top_k, score_t
     filter_retrieve_result = []
     for item in retrieve_result:
         if item["_score"] > score_threshold:
+            del item["_source"]["vector_field"]
             filter_retrieve_result.append(item)
     return filter_retrieve_result
 
@@ -223,7 +224,6 @@ def retrieve_results_from_opensearch(index_name, query_embedding, top_k=3, profi
         body=search_query,
         index=index_name
     )
-
     return response['hits']['hits']
 
 

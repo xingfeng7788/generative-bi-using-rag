@@ -129,7 +129,6 @@ def delete_history_by_session(history_request: HistorySessionRequest):
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str] = Cookie(None)):
-    print('---WEB SOCKET---', vars(websocket))
     try:
         get_current_user(dlunifiedtoken)
     except HTTPException as e:
@@ -147,7 +146,7 @@ async def websocket_endpoint(websocket: WebSocket, dlunifiedtoken: Optional[str]
                 if jwt_token:
                     del question_json['dlunifiedtoken']
 
-                logger.info('---JWT TOKEN---', jwt_token)
+                logger.info(f'---JWT TOKEN--- {jwt_token}')
 
                 if jwt_token:
                     res = validate_token(jwt_token)

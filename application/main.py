@@ -29,9 +29,7 @@ async def add_process_time_header(request: Request, call_next):
     # 检查请求路径是否在免拦截列表中
     if request.url.path in EXEMPT_PATHS:
         return await call_next(request)
-    print('---HTTP REQUEST---', vars(request), request.cookies)
     jwt_token = request.cookies.get('dlunifiedtoken', None)
-    print('---JWT TOKEN---', jwt_token)
     if jwt_token:
         res = validate_token(jwt_token)
         if not res["success"]:
