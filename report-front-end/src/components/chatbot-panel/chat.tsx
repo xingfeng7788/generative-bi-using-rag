@@ -153,7 +153,7 @@ export default function Chat(props: {
       <div className={styles.welcome_text}>
         {messageHistory.length === 0 &&
           statusMessage.filter((status) => status.session_id === props.currentSessionId).length === 0 &&
-          !loading && <center>{"GenBI Chatbot"}</center>}
+          !loading && <center>{"欣智GBI"}</center>}
       </div>
       <div className={styles.input_container}>
         <ChatInputPanel
