@@ -420,9 +420,9 @@ def handle_ask_dim_in_reply(state):
         if each_entity['_source']['entity'] in state['entity_selected']:
             selected_info = state['ask_entity_select'][each_entity['_source']['entity']]
             each_entity['_source']['comment'] = ENTITY_COMMENT_FORMAT.format(entity=each_entity['_source']['entity'],
-                                                                             table_name=each_entity['_source']['table_name'],
-                                                                             column_name=each_entity['_source']['column_name'],
-                                                                             value=each_entity['_source']['value'])
+                                                                             table_name=selected_info['table_name'],
+                                                                             column_name=selected_info['column_name'],
+                                                                             value=selected_info['value'])
         update_entity_slot_retrieves.append(each_entity)
     state['entity_slot_retrieves'] = update_entity_slot_retrieves
     return state
