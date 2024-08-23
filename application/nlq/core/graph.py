@@ -11,6 +11,7 @@ from langgraph.graph import StateGraph, END
 
 from nlq.business.connection import ConnectionManagement
 from utils.apis import get_sql_result_tool
+from utils.constant import ENTITY_COMMENT_FORMAT
 from utils.opensearch import get_retrieve_opensearch
 from utils.public_utils import response_stream_json, execute_sql
 from api.enum import ErrorEnum, ContentEnum
@@ -412,6 +413,21 @@ def handle_generate_sql_again(state):
     return state
 
 
+def handle_ask_dim_in_reply(state):
+    # 维度信息反问
+    update_entity_slot_retrieves = []
+    for each_entity in state['entity_slot_retrieves']:
+        if each_entity['_source']['entity'] in state['entity_selected']:
+            selected_info = state['ask_entity_select'][each_entity['_source']['entity']]
+            each_entity['_source']['comment'] = ENTITY_COMMENT_FORMAT.format(entity=each_entity['_source']['entity'],
+                                                                             table_name=each_entity['_source']['table_name'],
+                                                                             column_name=each_entity['_source']['column_name'],
+                                                                             value=each_entity['_source']['value'])
+        update_entity_slot_retrieves.append(each_entity)
+    state['entity_slot_retrieves'] = update_entity_slot_retrieves
+    return state
+
+
 def handle_feedback_query_or_rewrite(state):
     query_rewrite_result = {"intent": "original_problem", "query": state['query']}
     if state['context_window'] > 0:
@@ -553,7 +569,7 @@ class GraphWorkflow:
             ("trigger_ask_in_reply", handle_ask_in_reply),
             # ("deal_ask_in_reply", deal_ask_in_reply),
             ("end_format_answer", handle_output_format_answer),
-            # ("deal_ask_dim_in_reply", deal_ask_dim_in_reply),
+            ("deal_ask_dim_in_reply", handle_ask_dim_in_reply),
             ("get_core_metadata", get_profile_info),
             ("feedback_query_or_rewrite", handle_feedback_query_or_rewrite),
             # cot
@@ -586,7 +602,7 @@ class GraphWorkflow:
             ('search_knowledge', "end_format_answer"),
             # ('agent_task', "end_format_answer"),
             ('analyze_data', "end_format_answer"),
-            # ("entity_retrieval", "qa_retrieval"),
+            ("deal_ask_dim_in_reply", "qa_retrieval"),
             ('search_dataset_info', 'query_generation'),
             ('query_generation', 'end_format_answer'),
             ("sql_generation", "execute_query"),
@@ -609,7 +625,7 @@ class GraphWorkflow:
             ("get_core_metadata", decide_choose_next_node, {
                 "normal_process": "feedback_query_or_rewrite",
                 # "ask_in_reply": "deal_ask_in_reply",
-                "ask_dim_in_reply": "qa_retrieval",
+                "ask_dim_in_reply": "deal_ask_dim_in_reply",
             }),
             ("feedback_query_or_rewrite", decide_query_rewrite_next_node, {
                 "not_ask_in_reply": "intent_recognition",
@@ -730,5 +746,6 @@ class GraphWorkflow:
             "table_id": None,
             "graph_type": self.type,
             "dataset_schema": "",
-            "ask_entity_select": {}
+            "ask_entity_select": {},
+            "entity_selected": {},
         }

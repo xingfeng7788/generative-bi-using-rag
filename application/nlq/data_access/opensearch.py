@@ -1,5 +1,6 @@
 from opensearchpy.helpers import bulk
 
+from utils.constant import ENTITY_COMMENT_FORMAT
 from utils.llm import create_vector_embedding_with_bedrock
 from utils.opensearch import get_opensearch_cluster_client
 
@@ -161,14 +162,14 @@ class OpenSearchDao:
                           entity_table_info=[]):
         entity_count = len(entity_table_info)
         comment_value = []
-        item_comment_format = "{entity} is located in table {table_name}, column {column_name},  the dimension value is {value}."
+
         if entity_type == "dimension":
             if entity_count > 0:
                 for item in entity_table_info:
                     table_name = item["table_name"]
                     column_name = item["column_name"]
                     value = item["value"]
-                    comment_format = item_comment_format.format(entity=entity, table_name=table_name,
+                    comment_format = ENTITY_COMMENT_FORMAT.format(entity=entity, table_name=table_name,
                                                                 column_name=column_name, value=value)
                     comment_value.append(comment_format)
             comment = ";".join(comment_value)

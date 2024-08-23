@@ -22,6 +22,9 @@ class Question(BaseModel):
     user_id: str = "admin"
     entity_slots: List[str] = []
     entity_slot_retrieves: List = []
+    # {"实体1"：{"column_name": "字段名1", "table_name": "表名", "value": "字段数据库真实值"},
+    # "实体2"：{"column_name": "字段名2", "table_name": "表名", "value": "字段数据库真实值"},}
+    entity_selected: Optional[Dict] = {}
 
 
 class HistoryRequest(BaseModel):
@@ -230,3 +233,4 @@ class GraphState(TypedDict):
     graph_type: str
     dataset_schema: str
     ask_entity_select: Dict
+    entity_selected: Dict
