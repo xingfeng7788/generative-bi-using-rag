@@ -11,7 +11,7 @@ from langgraph.graph import StateGraph, END
 
 from nlq.business.connection import ConnectionManagement
 from utils.apis import get_sql_result_tool
-from utils.constant import ENTITY_COMMENT_FORMAT
+from utils.constant import ENTITY_COMMENT_FORMAT, en_cn_translation
 from utils.opensearch import get_retrieve_opensearch
 from utils.public_utils import response_stream_json, execute_sql
 from api.enum import ErrorEnum, ContentEnum
@@ -681,7 +681,7 @@ class GraphWorkflow:
                         break
                 else:
                     if not event['name'].startswith("decide_"):
-                        async for data in response_stream_json(state['session_id'], event['name'], ContentEnum.STATE,
+                        async for data in response_stream_json(state['session_id'], en_cn_translation.get(event['name'], event['name']), ContentEnum.STATE,
                                                                event["event"].split("_")[-1],
                                                                state['user_id'], streamed_json):
                             yield data
