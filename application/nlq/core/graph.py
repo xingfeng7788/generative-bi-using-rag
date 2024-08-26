@@ -468,6 +468,7 @@ def handle_ask_in_reply(state):
                     knowledge_search_result=knowledge_search_result,
                     sql_search_result=sql_search_result, agent_search_result=agent_search_response,
                     suggested_question=[], ask_rewrite_result=ask_result, json_search_result=json_search_result)
+    state['context_state'] = "ask_in_reply"
     state['answer'] = answer
     return state
 
@@ -483,7 +484,7 @@ def handle_suggested_question_list(state):
 
 
 def decide_choose_next_node(state):
-    # initial 正常流程, ask_in_reply: 缺少时间粒度反问, ask_dim_in_reply: 缺少维度信息反问
+    # initial 正常流程, ask_in_reply: 缺少时间粒度反问, ask_dim_in_reply: 维度确认信息反问
     if state['context_state'] == 'initial':
         return "normal_process"
     elif state['context_state'] == 'ask_in_reply':
@@ -527,6 +528,7 @@ def decide_sql_json_next_node(state):
 
 
 def handle_output_format_answer(state):
+    # context_state: initial, ask_in_reply, ask_dim_in_reply, completed
     state['answer'].context_state = state['context_state']
     state['answer'].ask_entity_select = state['ask_entity_select']
     state['answer'].entity_slots = state['entity_slots']
@@ -534,7 +536,8 @@ def handle_output_format_answer(state):
     state['answer'].qa_retrieves = state['qa_retrieves']
     state['answer'].agent_cot_retrieves = state['agent_cot_retrieves']
     state['answer'].agent_cot_task = state['agent_cot_task']
-    if state['context_state'] != 'ask_dim_in_reply':
+    if state['context_state'] not in ["ask_in_reply", "ask_dim_in_reply"]:
+        state['answer'].context_state = "completed"
         answer_info = change_class_to_str(state['answer'])
         LogManagement.add_log_to_database(log_id=log_id, user_id=state['user_id'], session_id=state['session_id'],
                                           profile_name=state['profile_name'], sql=state["sql"], query=state['query'],
